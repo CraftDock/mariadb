@@ -1,0 +1,30 @@
+{
+  "name": "craftdock/mariadb",
+  "default": "latest",
+  "versions": [
+    {
+      "version": "latest",
+      "dockerfile": "10.2/Dockerfile",
+      "context": "10.2/.",
+      "data": "10.2.13"
+    },
+    {
+      "version": "10.3",
+      "dockerfile": "10.3/Dockerfile",
+      "context": "10.3/.",
+      "data": "10.3.5"
+    },
+    {
+      "version": "10.2",
+      "dockerfile": "10.2/Dockerfile",
+      "context": "10.2/.",
+      "data": "10.2.13"
+    },
+    {
+      "version": "10.1",
+      "dockerfile": "10.1/Dockerfile",
+      "context": "10.1/.",
+      "data": "10.1.31"
+    }
+  ]
+}

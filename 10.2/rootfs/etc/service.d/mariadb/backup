@@ -1,0 +1,31 @@
+#!/bin/sh
+
+# No backup if the root password is not defined
+[ -z ${MYSQL_ROOT_PASSWORD} ] && exit
+
+# Get the list of databases to backup
+DATABASES=$(mysql --user=root --password=${MYSQL_ROOT_PASSWORD} -e 'show databases;' | sed 1d | grep -v -E "(mysql|information_schema|performance_schema)")
+# Define the backup directory
+BACKUP_DIR="/backup/mysql"
+# Define the number of backup to keep
+RETENTION_DAYS=${BACKUP_COUNT:=14}
+# date format
+DATE=$(date +"%Y%m%d%H%M")
+
+# Exit if there is no databases to backup
+[ -z ${DATABASES} ] && exit
+
+# Create backup folder if necessary
+if [ ! -d ${BACKUP_DIR} ]; then
+  mkdir -p ${BACKUP_DIR}
+  chmod 740 ${BACKUP_DIR}
+fi
+
+# Dump the databases in seperate names and gzip the .sql file
+for DATABASE in ${DATABASES}; do
+    mysqldump --force --opt --user=root --password=${MYSQL_ROOT_PASSWORD} ${DATABASE} | gzip > "${BACKUP_DIR}/${DATABASE}_$DATE.sql.gz"
+    chmod 640 "${BACKUP_DIR}/${DATABASE}_$DATE.sql.gz"
+done
+
+# Remove old files
+find "${BACKUP_DIR}/*" -mtime + $RETENTION_DAYS -delete
