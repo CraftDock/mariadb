@@ -29,6 +29,8 @@ RUN \
     && apk-update \
     # Install MairiaDB
 	# -------------------------------------------------------------------------------
+    && apk-install --repository http://dl-cdn.alpinelinux.org/alpine/edge/main/ \
+        libressl \
     # MariaDb server and MariaDb client
     && apk-install --repository /tmp/mariadb --allow-untrusted mariadb mariadb-client \
         # Remove unecessary files
