@@ -4,7 +4,7 @@ FROM craftdock/apk-mariadb:10.1 as mariadb_apk_builder
 ENV PACKAGER "Hexosse <hexosse@gmail.com>"
 
 RUN set -x \
-    # Build Hugo apk file
+    # Build apk file
     && /entrypoint abuild -r -P /packages \
     # Copy packages outside of builder volume
     && sudo cp -r /packages /tmp/mariadb
