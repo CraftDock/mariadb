@@ -12,7 +12,7 @@
       "version": "10.3",
       "dockerfile": "10.3/Dockerfile",
       "context": "10.3/.",
-      "data": "10.3.6"
+      "data": "10.3.7"
     },
     {
       "version": "10.2",
