@@ -18,7 +18,7 @@ LABEL maintainer="Hexosse <hexosse@gmail.com>" \
       description="Minimal Alpine image with MariaDb."
 
 ENV MARIADB_MAJOR 10.2
-ENV MARIADB_VERSION 10.2.16
+ENV MARIADB_VERSION 10.2.19
 
 COPY --from=mariadb_apk_builder /tmp/mariadb /tmp/mariadb
 
