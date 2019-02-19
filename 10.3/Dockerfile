@@ -18,7 +18,7 @@ LABEL maintainer="Hexosse <hexosse@gmail.com>" \
       description="Minimal Alpine image with MariaDb."
 
 ENV MARIADB_MAJOR 10.3
-ENV MARIADB_VERSION 10.3.11
+ENV MARIADB_VERSION 10.3.12
 
 COPY --from=mariadb_apk_builder /tmp/mariadb /tmp/mariadb
 
@@ -27,12 +27,15 @@ RUN \
 	set -x \
     # Update repository indexes
     && apk-update \
-    # Install MairiaDB
+    # Install MariaDB
 	# -------------------------------------------------------------------------------
     && apk-install --repository http://dl-cdn.alpinelinux.org/alpine/edge/main/ \
         libressl \
     # MariaDb server and MariaDb client
-    && apk-install --repository /tmp/mariadb --allow-untrusted mariadb mariadb-client \
+    && apk-install --repository /tmp/mariadb --allow-untrusted \
+        mariadb-common=${MARIADB_VERSION}-r0 \
+        mariadb-client=${MARIADB_VERSION}-r0 \
+        mariadb=${MARIADB_VERSION}-r0 \
         # Remove unecessary files
         && rm -rf /usr/data/test/db.opt \
         && rm -rf /usr/share/mysql/README* \
