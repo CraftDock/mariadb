@@ -49,6 +49,7 @@ INNODB_LOCK_WAIT_TIMEOUT            | `50`
 INNODB_USE_NATIVE_AIO               | `1`
 INNODB_LARGE_PREFIX                 | `OFF`` (Removed in 10.3)
 INNODB_FILE_FORMAT                  | `Antelope` (10.1) `Barracuda` (10.2) (Removed in 10.3)
+INNODB_DEFAULT_ROW_FORMAT           | `dynamic`
 INNODB_FILE_PER_TABLE               | `ON`
 MAX_ALLOWED_PACKET                  | `16M`
 KEY_BUFFER_SIZE                     | `20M`

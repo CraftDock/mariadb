@@ -139,6 +139,7 @@ innodb_lock_wait_timeout = {{INNODB_LOCK_WAIT_TIMEOUT}}
 innodb_use_native_aio = {{INNODB_USE_NATIVE_AIO}}
 innodb_large_prefix = {{INNODB_LARGE_PREFIX}}
 innodb_file_format = {{INNODB_FILE_FORMAT}}
+innodb_default_row_format = {{INNODB_DEFAULT_ROW_FORMAT}}
 innodb_file_per_table = {{INNODB_FILE_PER_TABLE}}
 
 [mysqldump]

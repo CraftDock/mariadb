@@ -136,6 +136,7 @@ innodb_log_buffer_size = {{INNODB_LOG_BUFFER_SIZE}}
 innodb_flush_log_at_trx_commit = {{INNODB_FLUSH_LOG_AT_TRX_COMMIT}}
 innodb_lock_wait_timeout = {{INNODB_LOCK_WAIT_TIMEOUT}}
 innodb_use_native_aio = {{INNODB_USE_NATIVE_AIO}}
+innodb_default_row_format = {{INNODB_DEFAULT_ROW_FORMAT}}
 innodb_file_per_table = {{INNODB_FILE_PER_TABLE}}
 
 [mysqldump]
