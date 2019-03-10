@@ -12,6 +12,7 @@ exec 2>&1
 
 # Default values
 export MYSQL_DATA_DIR=${MYSQL_DATA_DIR:='/var/lib/mysql/'}
+export MYSQL_INSTALL_PARAMS=${MYSQL_INSTALL_PARAMS:=''}
 export MYSQL_STARTCMD=${MYSQL_STARTCMD:='/usr/bin/mysqld'}
 export MYSQL_STARTPARAMS=${MYSQL_STARTPARAMS:='--skip-host-cache --skip-name-resolve --debug-gdb'} #'--skip-networking --skip-name-resolve --debug-gdb'}
 export MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD:=''}
@@ -65,7 +66,7 @@ if [ -z "$(ls -A $MYSQL_DATA_DIR)" ]; then
     echo >&2 ''
     echo >&2 'Initializing database ...'
     echo >&2 ''
-    mysql_install_db --user=mysql --basedir=/usr --datadir="$MYSQL_DATA_DIR" --rpm --cross-bootstrap
+    mysql_install_db --user=mysql --basedir=/usr --datadir="$MYSQL_DATA_DIR" --rpm --cross-bootstrap "$MYSQL_INSTALL_PARAMS"
     echo >&2 ''
     echo >&2 'Database initialized'
     echo >&2 ''

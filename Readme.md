@@ -21,6 +21,7 @@ MYSQL_DATABASE                      | [empty]                           | create
 MYSQL_USER                          | [empty]                           | creates a user with owner permissions over said database
 MYSQL_PASSWORD                      | [empty]                           | changes password of the provided user (not root)
 MYSQL_DATA_DIR                      | `/var/lib/mysql/`                 | Change mysql default directory
+MYSQL_INSTALL_PARAMS                |                                   | Add parameters to mysql_install_db (set to `--innodb-flush-method=fsync` to persist volume on windows)
 MYSQL_STARTCMD                      | `/usr/bin/mysqld`                 | Default start command
 MYSQL_STARTPARAMS                   | `--skip-host-cache --skip-name-resolve --debug-gdb` | Default start parameters
 DEFAULT_CHARACTER_SET               | `utf8`
@@ -91,6 +92,20 @@ docker run -d --name=mariadb \
         -e MYSQL_PASSWORD=<password> \
         -e MYSQL_STARTPARAMS='--skip-networking --skip-host-cache --skip-name-resolve --debug-gdb' \
         -v $(PWD)/mariadb/:/var/lib/mysql \
+            craftdock/mariadb
+```
+
+Persistent volume on windows
+
+```Dockerfile
+docker run -d --name=mariadb `
+        -p 3306:3306 `
+        -e MYSQL_ROOT_PASSWORD=<secretpassword> `
+        -e MYSQL_DATABASE=<databasename> `
+        -e MYSQL_USER=<username> `
+        -e MYSQL_PASSWORD=<password> `
+        -e MYSQL_INSTALL_PARAMS='--innodb-flush-method=fsync' `
+        -v ./mariadb/:/var/lib/mysql `
             craftdock/mariadb
 ```
 
