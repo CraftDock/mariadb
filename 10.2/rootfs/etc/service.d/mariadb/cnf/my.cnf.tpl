@@ -60,7 +60,7 @@ bind-address = {{BIND_ADRESS}}
 #log-bin = {{LOG_BIN}}
 
 # binary logging format - mixed recommended
-#binlog_format = {{BINLOG_FORMAT}}
+binlog_format = {{BINLOG_FORMAT}}
 
 # required unique id between 1 and 2^32 - 1
 # defaults to 1 if master-host is not set
