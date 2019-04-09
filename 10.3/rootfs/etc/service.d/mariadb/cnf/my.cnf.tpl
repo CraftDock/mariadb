@@ -41,6 +41,7 @@ net_buffer_length = {{NET_BUFFER_SIZE}}
 read_buffer_size = {{READ_BUFFER_SIZE}}
 read_rnd_buffer_size = {{READ_RND_BUFFER_SIZE}}
 myisam_sort_buffer_size = {{MYISAM_SORT_BUFFER_SIZE}}
+transaction-isolation = {{TRANSACTION_ISOLATION}}
 
 # Point the following paths to different dedicated disks
 tmpdir		= /tmp/

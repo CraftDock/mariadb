@@ -36,6 +36,7 @@ NET_BUFFER_SIZE                     | `8K`
 READ_BUFFER_SIZE                    | `256K`
 READ_RND_BUFFER_SIZE                | `512K`
 MYISAM_SORT_BUFFER_SIZE             | `8M`
+TRANSACTION_ISOLATION               | `READ-COMMITTED`                  | Set default tyransaction isolation level (https://mariadb.com/kb/en/library/set-transaction/) 
 BIND_ADRESS                         | `0.0.0.0`
 LOG_BIN                             | `mysql-bin`
 BINLOG_FORMAT                       | `mixed`
