@@ -65,6 +65,13 @@ if [ -z "$(ls -A $MYSQL_DATA_DIR)" ]; then
     # It's time to initialize the database
     echo >&2 ''
     echo >&2 'Initializing database ...'
+    echo >&2 '  mysql_install_db'
+    echo >&2 '    --user=mysql'
+    echo >&2 '    --basedir=/usr'
+    echo >&2 '    --datadir='"$MYSQL_DATA_DIR"
+    echo >&2 '    --rpm'
+    echo >&2 '    --cross-bootstrap'
+    if [ -n "$MYSQL_INSTALL_PARAMS" ] ; then echo >&2 '    '"$MYSQL_INSTALL_PARAMS"; fi
     echo >&2 ''
     mysql_install_db --user=mysql --basedir=/usr --datadir="$MYSQL_DATA_DIR" --rpm --cross-bootstrap "$MYSQL_INSTALL_PARAMS"
     echo >&2 ''
@@ -106,6 +113,10 @@ chmod +x /etc/service.d/mariadb/backup
 # Let's go and start MariaDB
 echo >&2 ''
 echo >&2 'Starting MariaDB'
+echo >&2 '  mysql'
+echo >&2 '    '"${MYSQL_STARTCMD}"
+echo >&2 '    --user=mysql'
+if [ -n "$MYSQL_INSTALL_PARAMS" ] ; then echo >&2 '    '"$MYSQL_STARTPARAMS"; fi
 echo >&2 ''
 exec su-exec mysql ${MYSQL_STARTCMD} --user=mysql ${MYSQL_STARTPARAMS}
 
