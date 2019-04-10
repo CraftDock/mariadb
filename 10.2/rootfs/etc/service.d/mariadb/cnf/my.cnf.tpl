@@ -58,7 +58,7 @@ bind-address = {{BIND_ADRESS}}
 
 # Replication Master Server (default)
 # binary logging is required for replication
-#log-bin = {{LOG_BIN}}
+log-bin = {{LOG_BIN}}
 
 # binary logging format - mixed recommended
 binlog_format = {{BINLOG_FORMAT}}
