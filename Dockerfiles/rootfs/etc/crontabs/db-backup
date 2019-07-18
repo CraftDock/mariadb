@@ -1,0 +1,1 @@
+0 4 * * * /etc/service.d/mariadb/bin/backup > /dev/null 2>&1

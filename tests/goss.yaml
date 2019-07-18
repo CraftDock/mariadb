@@ -1,0 +1,80 @@
+group:
+  mysql:
+    exists: true
+    gid: 101
+    skip: false
+
+user:
+  mysql:
+    exists: true
+    uid: 100
+    gid: 101
+    groups:
+    - mysql
+    skip: false
+
+command:
+  mysql-version:
+    exit-status: 0
+    exec: "mysql -V"
+    stdout:
+    - {{getEnv "MARIADB_VERSION"}}
+    stderr: []
+    skip: false
+  mysqladmin-version:
+    exit-status: 0
+    exec: "mysqladmin -V"
+    stdout:
+    - {{getEnv "MARIADB_VERSION"}}
+    stderr: []
+    skip: false
+  mysqld-version:
+    exit-status: 0
+    exec: "mysqld -V"
+    stdout:
+    - {{getEnv "MARIADB_VERSION"}}
+    stderr: []
+    skip: false
+  mysqlcheck-version:
+    exit-status: 0
+    exec: "mysqlcheck -V"
+    stdout:
+    - {{getEnv "MARIADB_VERSION"}}
+    stderr: []
+    skip: false
+  mysqldump-version:
+    exit-status: 0
+    exec: "mysqldump -V"
+    stdout:
+    - {{getEnv "MARIADB_VERSION"}}
+    stderr: []
+    skip: false
+  mysqlimport-version:
+    exit-status: 0
+    exec: "mysqlimport -V"
+    stdout:
+    - {{getEnv "MARIADB_VERSION"}}
+    stderr: []
+    skip: false
+
+file:
+  /mysql/db:
+    exists: true
+    owner: mysql
+    group: mysql
+    filetype: directory
+  /mysql/conf:
+    exists: true
+    owner: mysql
+    group: mysql
+    filetype: directory
+  {{getEnv "MYSQL_BACKUP_DIR"}}:
+    exists: true
+    owner: mysql
+    group: mysql
+    filetype: directory
+  {{getEnv "MYSQL_LOG_DIR"}}:
+    exists: true
+    owner: mysql
+    group: mysql
+    filetype: directory
