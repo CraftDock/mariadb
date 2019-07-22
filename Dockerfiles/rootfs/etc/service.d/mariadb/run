@@ -24,9 +24,6 @@ export MYSQL_USER=${MYSQL_USER:=''}
 export MYSQL_PASSWORD=${MYSQL_PASSWORD:=''}
 
 
-# Generate MariaDb config file from template
-[ -f ./cnf/setup ] && (chmod +x ./cnf/setup; ./cnf/setup)
-
 # If the MYSQL_DATA_DIR doesn't exist, this mean
 # that we perform the first install.
 if [ -z "$(ls -A $MYSQL_DATA_DIR)" ]; then
@@ -133,7 +130,7 @@ NOTICE '  mysql'
 NOTICE '    '"${MYSQL_STARTCMD}"
 NOTICE '    --user=mysql'
 NOTICE '    --pid-file=/var/run/mysqld/mysqld.pid'
-if [ -n "$MYSQL_INSTALL_PARAMS" ] ; then NOTICE '    '"$MYSQL_STARTPARAMS"; fi
+if [ -n "$MYSQL_STARTPARAMS" ] ; then NOTICE '    '"$MYSQL_STARTPARAMS"; fi
 NOTICE ''
 exec su-exec mysql ${MYSQL_STARTCMD} --user=mysql --pid-file=/var/run/mysqld/mysqld.pid ${MYSQL_STARTPARAMS}
 

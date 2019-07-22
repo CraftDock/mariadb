@@ -51,10 +51,10 @@ export TIMEZONE=${TIMEZONE:='+00:00'}
 
 
 # Functions used to compare verions
-version_gt() { test "$(echo "$@" | tr " " "\n" | sort | head -n 1)" != "$1"; }
-version_le() { test "$(echo "$@" | tr " " "\n" | sort | head -n 1)" == "$1"; }
-version_lt() { test "$(echo "$@" | tr " " "\n" | sort -r | head -n 1)" != "$1"; }
-version_ge() { test "$(echo "$@" | tr " " "\n" | sort -r | head -n 1)" == "$1"; }
+version_gt() { test "$(echo "$@" | tr " " "\n" | sort -g | head -n 1)" != "$1"; }
+version_le() { test "$(echo "$@" | tr " " "\n" | sort -g | head -n 1)" == "$1"; }
+version_lt() { test "$(echo "$@" | tr " " "\n" | sort -gr | head -n 1)" != "$1"; }
+version_ge() { test "$(echo "$@" | tr " " "\n" | sort -gr | head -n 1)" == "$1"; }
 
 
 # Create conf.d directory
@@ -62,7 +62,7 @@ mkdir -p "/mysql/conf/conf.d/"
 chown -R mysql:mysql "/mysql/conf/conf.d/"
 
 # Use templater to generate my.cnf
-templater /etc/service.d/mariadb/cnf/my.cnf.tpl > /mysql/conf/my.cnf
+templater /etc/entrypoint.d/mariadb.cnf/my.cnf.tpl > /mysql/conf/my.cnf
 
 
 # Comment deprecated
