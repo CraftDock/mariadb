@@ -1,6 +1,6 @@
 --- configure.cmake
 +++ configure.cmake
-@@ -989,9 +989,12 @@ SET(CMAKE_EXTRA_INCLUDE_FILES)
+@@ -963,9 +963,12 @@ SET(CMAKE_EXTRA_INCLUDE_FILES)
  CHECK_STRUCT_HAS_MEMBER("struct dirent" d_ino "dirent.h"  STRUCT_DIRENT_HAS_D_INO)
  CHECK_STRUCT_HAS_MEMBER("struct dirent" d_namlen "dirent.h"  STRUCT_DIRENT_HAS_D_NAMLEN)
  SET(SPRINTF_RETURNS_INT 1)
