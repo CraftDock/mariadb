@@ -1,6 +1,6 @@
 --- storage/innobase/include/ut0ut.h
 +++ storage/innobase/include/ut0ut.h
-@@ -104,9 +104,8 @@ private:
+@@ -102,9 +102,8 @@ private:
  #endif
  
  # if defined(HAVE_HMT_PRIORITY_INSTRUCTION)
