@@ -27,8 +27,8 @@
  #define HMT_very_low()
  #define HMT_low()
 @@ -72,7 +71,7 @@ static inline void MY_RELAX_CPU(void)
-   */
-   YieldProcessor();
+   __asm__ __volatile__ ("pause");
+ #endif
  #elif defined(_ARCH_PWR8)
 -  __ppc_get_timebase();
 +  __builtin_ppc_get_timebase();

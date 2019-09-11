@@ -1,6 +1,6 @@
 --- storage/tokudb/PerconaFT/portability/toku_time.h
 +++ storage/tokudb/PerconaFT/portability/toku_time.h
-@@ -110,7 +110,7 @@ static inline tokutime_t toku_time_now(v
+@@ -124,7 +124,7 @@ static inline tokutime_t toku_time_now(v
      __asm __volatile__ ("mrs %[rt], cntvct_el0" : [rt] "=r" (result));
      return result;
  #elif defined(__powerpc__)
