@@ -1,0 +1,61 @@
+--- a/storage/innobase/include/ut0ut.h
++++ b/storage/innobase/include/ut0ut.h
+@@ -87,8 +87,7 @@ private:
+    independent way by using YieldProcessor. */
+ #  define UT_RELAX_CPU() YieldProcessor()
+ # elif defined(__powerpc__)
+-#include <sys/platform/ppc.h>
+-#  define UT_RELAX_CPU() __ppc_get_timebase()
++#  define UT_RELAX_CPU() __builtin_ppc_get_timebase()
+ # else
+ #  define UT_RELAX_CPU() ((void)0) /* avoid warning for an empty statement */
+ # endif
+@@ -102,9 +101,8 @@ private:
+ #endif
+ 
+ # if defined(HAVE_HMT_PRIORITY_INSTRUCTION)
+-#include <sys/platform/ppc.h>
+-#  define UT_LOW_PRIORITY_CPU() __ppc_set_ppr_low()
+-#  define UT_RESUME_PRIORITY_CPU() __ppc_set_ppr_med()
++#  define UT_LOW_PRIORITY_CPU() __asm__ __volatile__ ("or 1,1,1")
++#  define UT_RESUME_PRIORITY_CPU() __asm__ __volatile__ ("or 2,2,2")
+ # else
+ #  define UT_LOW_PRIORITY_CPU() ((void)0)
+ #  define UT_RESUME_PRIORITY_CPU() ((void)0)
+
+--- a/storage/tokudb/PerconaFT/portability/toku_time.h
++++ b/storage/tokudb/PerconaFT/portability/toku_time.h
+@@ -124,7 +124,7 @@ static inline tokutime_t toku_time_now(v
+     __asm __volatile__ ("mrs %[rt], cntvct_el0" : [rt] "=r" (result));
+     return result;
+ #elif defined(__powerpc__)
+-    return __ppc_get_timebase();
++    return __builtin_ppc_get_timebase();
+ #else
+ #error No timer implementation for this platform
+ #endif
+
+--- a/storage/xtradb/include/ut0ut.h
++++ b/storage/xtradb/include/ut0ut.h
+@@ -84,8 +84,7 @@ private:
+    independent way by using YieldProcessor. */
+ #  define UT_RELAX_CPU() YieldProcessor()
+ # elif defined(__powerpc__)
+-#include <sys/platform/ppc.h>
+-#  define UT_RELAX_CPU() __ppc_get_timebase()
++#  define UT_RELAX_CPU() __builtin_ppc_get_timebase()
+ # else
+ #  define UT_RELAX_CPU() ((void)0) /* avoid warning for an empty statement */
+ # endif
+@@ -99,9 +98,8 @@ private:
+ #endif
+ 
+ # if defined(HAVE_HMT_PRIORITY_INSTRUCTION)
+-#include <sys/platform/ppc.h>
+-#  define UT_LOW_PRIORITY_CPU() __ppc_set_ppr_low()
+-#  define UT_RESUME_PRIORITY_CPU() __ppc_set_ppr_med()
++#  define UT_LOW_PRIORITY_CPU() __asm__ __volatile__ ("or 1,1,1")
++#  define UT_RESUME_PRIORITY_CPU() __asm__ __volatile__ ("or 2,2,2")
+ # else
+ #  define UT_LOW_PRIORITY_CPU() ((void)0)
+ #  define UT_RESUME_PRIORITY_CPU() ((void)0)

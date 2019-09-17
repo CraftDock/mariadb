@@ -1,16 +1,13 @@
 group:
-  mysql:
+  {{getEnv "MARIADB_GROUP"}}:
     exists: true
-    gid: 101
     skip: false
 
 user:
-  mysql:
+  {{getEnv "MARIADB_USER"}}:
     exists: true
-    uid: 100
-    gid: 101
     groups:
-    - mysql
+    - {{getEnv "MARIADB_GROUP"}}
     skip: false
 
 command:
@@ -58,23 +55,28 @@ command:
     skip: false
 
 file:
-  /mysql/db:
+  {{getEnv "MARIADB_CONFIG_DIR"}}:
     exists: true
-    owner: mysql
-    group: mysql
+    owner: {{getEnv "MARIADB_USER"}}
+    group: {{getEnv "MARIADB_GROUP"}}
     filetype: directory
-  /mysql/conf:
+  {{getEnv "MARIADB_DATA_DIR"}}:
     exists: true
-    owner: mysql
-    group: mysql
+    owner: {{getEnv "MARIADB_USER"}}
+    group: {{getEnv "MARIADB_GROUP"}}
     filetype: directory
-  {{getEnv "MYSQL_BACKUP_DIR"}}:
+  /var/lib/mysql:
     exists: true
-    owner: mysql
-    group: mysql
+    owner: root
+    group: root
+    filetype: symlink
+  {{getEnv "MARIADB_BACKUP_DIR"}}:
+    exists: true
+    owner: {{getEnv "MARIADB_USER"}}
+    group: {{getEnv "MARIADB_GROUP"}}
     filetype: directory
-  {{getEnv "MYSQL_LOG_DIR"}}:
+  {{getEnv "MARIADB_LOG_DIR"}}:
     exists: true
-    owner: mysql
-    group: mysql
+    owner: {{getEnv "MARIADB_USER"}}
+    group: {{getEnv "MARIADB_GROUP"}}
     filetype: directory

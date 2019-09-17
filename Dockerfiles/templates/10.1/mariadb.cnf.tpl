@@ -1,7 +1,8 @@
-# Example MariaDB config file for very large systems.
+# Example MariaDB config file for medium systems.
 #
-# This is for a large system with memory of 1G-2G where the system runs mainly
-# MariaDB.
+# This is for a system with little memory (32M - 64M) where MariaDB plays
+# an important part, or systems up to 128M where MariaDB is used together with
+# other programs (such as a web server)
 #
 # MariaDB programs look for option files in a set of
 # locations which depend on the deployment platform.
@@ -15,33 +16,42 @@
 # If you want to know which options a program supports, run the program
 # with the "--help" option.
 
-# The following options will be passed to all MySQL clients
+# The following options will be passed to all MariaDB clients
 [client]
-#password	= your_password
-port		= 3306
-socket		= /run/mariadb/mariadb.sock
+#password	          = your_password
+port		          = 3306
+socket		          = /run/mariadb/mariadb.sock
+default-character-set = {{MYSQL_CLIENT_DEFAULT_CHARACTER_SET}}
 
 # Here follows entries for some specific programs
 
-# The MySQL server
+# The MariaDB server
 [mysqld]
-port		= 3306
-socket		= /run/mariadb/mariadb.sock
+port		            = 3306
+socket		            = /run/mariadb/mariadb.sock
+pid-file		        = /run/mariadb/mariadb.pid
+character-set-server    = {{MYSQL_CHARACTER_SET_SERVER}}
+collation-server        = {{MYSQL_COLLATION_SERVER}}
+default-time-zone       = {{TIMEZONE}}
 skip-external-locking
-key_buffer_size = 384M
-max_allowed_packet = 1M
-table_open_cache = 512
-sort_buffer_size = 2M
-read_buffer_size = 2M
-read_rnd_buffer_size = 8M
-myisam_sort_buffer_size = 64M
-thread_cache_size = 8
-query_cache_size = 32M
-# Try number of CPU's*2 for thread_concurrency
-thread_concurrency = 8
+key_buffer_size         = {{MYSQL_KEY_BUFFER_SIZE}}
+max_allowed_packet      = {{MYSQL_MAX_ALLOWED_PACKET}}
+table_open_cache        = {{MYSQL_TABLE_OPEN_CACHE}}
+sort_buffer_size        = {{MYSQL_SORT_BUFFER_SIZE}}
+net_buffer_length       = {{MYSQL_NET_BUFFER_LENGTH}}
+read_buffer_size        = {{MYSQL_READ_BUFFER_SIZE}}
+read_rnd_buffer_size    = {{MYSQL_READ_RND_BUFFER_SIZE}}
+myisam_sort_buffer_size = {{MYSQL_MYISAM_SORT_BUFFER_SIZE}}
+transaction-isolation   = {{MYSQL_TRANSACTION_ISOLATION}}
 
-# Point the following paths to a dedicated disk
-#tmpdir		= /tmp/
+# logs
+general_log             = {{MYSQL_GENERAL_LOG}}
+general_log_file        = {{MYSQL_LOG_DIR}}/mysql.log
+slow-query-log          = {{MYSQL_SLOW_QUERY_LOG}}
+slow-query-log-file     = {{MYSQL_LOG_DIR}}/mysql-slow.log
+
+# Point the following paths to different dedicated disks
+tmpdir = /var/tmp/mariadb
 
 # Don't listen on a TCP/IP port at all. This can be a security enhancement,
 # if all processes that need to connect to mysqld run on the same host.
@@ -50,15 +60,20 @@ thread_concurrency = 8
 # (via the "enable-named-pipe" option) will render mysqld useless!
 #
 #skip-networking
+#skip-name-resolve
+bind-address = {{MYSQL_BIND_ADRESS}}
 
 # Replication Master Server (default)
 # binary logging is required for replication
-log-bin=mysql-bin
+log-bin = {{MYSQL_LOG_BIN}}
+
+# binary logging format - mixed recommended
+binlog_format = {{MYSQL_BINLOG_FORMAT}}
 
 # required unique id between 1 and 2^32 - 1
 # defaults to 1 if master-host is not set
 # but will not function as a master if omitted
-server-id	= 1
+server-id = {{MYSQL_SERVER_ID}}
 
 # Replication Slave (comment out master section to use this)
 #
@@ -114,27 +129,35 @@ server-id	= 1
 #
 # binary logging - not required for slaves, but recommended
 #log-bin=mysql-bin
-#
-# binary logging format - mixed recommended
-#binlog_format=mixed
 
 # Uncomment the following if you are using InnoDB tables
-#innodb_data_home_dir = /var/lib/mysql
-#innodb_data_file_path = ibdata1:2000M;ibdata2:10M:autoextend
-#innodb_log_group_home_dir = /var/lib/mysql
+innodb_data_home_dir =  {{MARIADB_DATA_DIR}}
+innodb_data_file_path = {{MYSQL_INNODB_DATA_FILE_PATH}}
+innodb_log_group_home_dir =  {{MARIADB_DATA_DIR}}
 # You can set .._buffer_pool_size up to 50 - 80 %
 # of RAM but beware of setting memory usage too high
-#innodb_buffer_pool_size = 384M
-#innodb_additional_mem_pool_size = 20M
+innodb_buffer_pool_size = {{MYSQL_INNODB_BUFFER_POOL_SIZE}}
+#innodb_additional_mem_pool_size = 2M
 # Set .._log_file_size to 25 % of buffer pool size
-#innodb_log_file_size = 100M
-#innodb_log_buffer_size = 8M
-#innodb_flush_log_at_trx_commit = 1
-#innodb_lock_wait_timeout = 50
+innodb_log_file_size = {{MYSQL_INNODB_LOG_FILE_SIZE}}
+innodb_log_buffer_size = {{MYSQL_INNODB_LOG_BUFFER_SIZE}}
+innodb_empty_free_list_algorithm = {{MYSQL_INNODB_EMPTY_FREE_LIST_ALGORITHM}}
+innodb_flush_log_at_trx_commit = {{MYSQL_INNODB_FLUSH_LOG_AT_TRX_COMMIT}}
+innodb_lock_wait_timeout = {{MYSQL_INNODB_LOCK_WAIT_TIMEOUT}}
+innodb_use_native_aio = {{MYSQL_INNODB_USE_NATIVE_AIO}}
+innodb_large_prefix = {{MYSQL_INNODB_LARGE_PREFIX}}
+innodb_file_format = {{MYSQL_INNODB_FILE_FORMAT}}
+innodb_default_row_format = {{MYSQL_INNODB_DEFAULT_ROW_FORMAT}}
+innodb_file_per_table = {{MYSQL_INNODB_FILE_PER_TABLE}}
+
+# Optimizer
+optimizer_prune_level = {{MYSQL_OPTIMIZER_PRUNE_LEVEL}}
+optimizer_search_depth = {{MYSQL_OPTIMIZER_SEARCH_DEPTH}}
 
 [mysqldump]
 quick
-max_allowed_packet = 16M
+quote-names
+max_allowed_packet = {{MYSQL_DUMP_MAX_ALLOWED_PACKET}}
 
 [mysql]
 no-auto-rehash
@@ -142,10 +165,12 @@ no-auto-rehash
 #safe-updates
 
 [myisamchk]
-key_buffer_size = 256M
-sort_buffer_size = 256M
-read_buffer = 2M
-write_buffer = 2M
+key_buffer_size = {{MYSQL_MYISAMCHK_KEY_BUFFER_SIZE}}
+sort_buffer_size = {{MYSQL_MYISAMCHK_SORT_BUFFER_SIZE}}
+read_buffer = {{MYSQL_MYISAMCHK_READ_BUFFER}}
+write_buffer = {{MYSQL_MYISAMCHK_WRITE_BUFFER }}
 
 [mysqlhotcopy]
 interactive-timeout
+
+!includedir {{MARIADB_CONFIG_DIR}}/conf.d/

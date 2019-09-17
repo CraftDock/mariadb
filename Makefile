@@ -1,85 +1,48 @@
-#!make
+## Name of the image
+DOCKER_IMAGE=dsuite/mariadb
+
+## Current directory
 DIR:=$(strip $(shell dirname $(realpath $(lastword $(MAKEFILE_LIST)))))
-PROJECT_NAME:=$(strip $(shell basename $(DIR)))
-DOCKER_IMAGE=dsuite/$(PROJECT_NAME)
+
+## Define the latest version of nextcloud
+latest = 10.4
 
 # env file
 include $(DIR)/make.env
 
-
-build: build-10.1 build-10.2 build-10.3 build-10.4
-
-test: test-10.1 test-10.2 test-10.3 test-10.4
-
-push: push-10.1 push-10.2 push-10.3 push-10.4
+##
+.DEFAULT_GOAL := help
+.PHONY: *
 
 
-build-10.1:
+help: ## Display this help
+	@printf "\n\033[33mUsage:\033[0m\n  make \033[32m<target>\033[0m \033[36m[\033[0marg=\"val\"...\033[36m]\033[0m\n\n\033[33mTargets:\033[0m\n"
+	@awk 'BEGIN {FS = ":.*##"} /^[a-zA-Z_-]+:.*?##/ { printf "  \033[32m%-15s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
+
+
+build: ## Build a specific version of mariadb ( make build v=10.4)
+	@$(eval version := $(or $(v),$(latest)))
 	@docker run --rm \
 		-e http_proxy=${http_proxy} \
 		-e https_proxy=${https_proxy} \
-		-e MARIADB_MAJOR=$(MARIADB_10_1_MAJOR) \
-		-e MARIADB_VERSION=$(MARIADB_10_1_VERSION) \
+		-e MARIADB_MAJOR=$(MARIADB_$(version)_MAJOR) \
+		-e MARIADB_VERSION=$(MARIADB_$(version)_VERSION) \
+		-e MARIADB_ALPINE=$(MARIADB_$(version)_ALPINE) \
 		-v $(DIR)/Dockerfiles:/data \
 		dsuite/alpine-data \
-		sh -c "templater Dockerfile.template > Dockerfile-$(MARIADB_10_1_MAJOR)"
+		sh -c "templater Dockerfile.template > Dockerfile-$(MARIADB_$(version)_MAJOR)"
 	@docker build \
 		--build-arg http_proxy=${http_proxy} \
 		--build-arg https_proxy=${https_proxy} \
-		--file $(DIR)/Dockerfiles/Dockerfile-$(MARIADB_10_1_MAJOR) \
-		--tag $(DOCKER_IMAGE):$(MARIADB_10_1_MAJOR) \
+		--file $(DIR)/Dockerfiles/Dockerfile-$(MARIADB_$(version)_MAJOR) \
+		--tag $(DOCKER_IMAGE):$(MARIADB_$(version)_MAJOR) \
 		$(DIR)/Dockerfiles
+	@[ "$(version)" = "$(latest)" ] && docker tag $(DOCKER_IMAGE):$(MARIADB_$(version)_MAJOR) $(DOCKER_IMAGE):latest || true
 
-build-10.2:
-	@docker run --rm \
-		-e http_proxy=${http_proxy} \
-		-e https_proxy=${https_proxy} \
-		-e MARIADB_MAJOR=$(MARIADB_10_2_MAJOR) \
-		-e MARIADB_VERSION=$(MARIADB_10_2_VERSION) \
-		-v $(DIR)/Dockerfiles:/data \
-		dsuite/alpine-data \
-		sh -c "templater Dockerfile.template > Dockerfile-$(MARIADB_10_2_MAJOR)"
-	@docker build \
-		--build-arg http_proxy=${http_proxy} \
-		--build-arg https_proxy=${https_proxy} \
-		--file $(DIR)/Dockerfiles/Dockerfile-$(MARIADB_10_2_MAJOR) \
-		--tag $(DOCKER_IMAGE):$(MARIADB_10_2_MAJOR) \
-		$(DIR)/Dockerfiles
 
-build-10.3:
-	@docker run --rm \
-		-e http_proxy=${http_proxy} \
-		-e https_proxy=${https_proxy} \
-		-e MARIADB_MAJOR=$(MARIADB_10_3_MAJOR) \
-		-e MARIADB_VERSION=$(MARIADB_10_3_VERSION) \
-		-v $(DIR)/Dockerfiles:/data \
-		dsuite/alpine-data \
-		sh -c "templater Dockerfile.template > Dockerfile-$(MARIADB_10_3_MAJOR)"
-	@docker build \
-		--build-arg http_proxy=${http_proxy} \
-		--build-arg https_proxy=${https_proxy} \
-		--file $(DIR)/Dockerfiles/Dockerfile-$(MARIADB_10_3_MAJOR) \
-		--tag $(DOCKER_IMAGE):$(MARIADB_10_3_MAJOR) \
-		$(DIR)/Dockerfiles
-
-build-10.4:
-	@docker run --rm \
-		-e http_proxy=${http_proxy} \
-		-e https_proxy=${https_proxy} \
-		-e MARIADB_MAJOR=$(MARIADB_10_4_MAJOR) \
-		-e MARIADB_VERSION=$(MARIADB_10_4_VERSION) \
-		-v $(DIR)/Dockerfiles:/data \
-		dsuite/alpine-data \
-		sh -c "templater Dockerfile.template > Dockerfile-$(MARIADB_10_4_MAJOR)"
-	@docker build \
-		--build-arg http_proxy=${http_proxy} \
-		--build-arg https_proxy=${https_proxy} \
-		--file $(DIR)/Dockerfiles/Dockerfile-$(MARIADB_10_4_MAJOR) \
-		--tag $(DOCKER_IMAGE):$(MARIADB_10_4_MAJOR) \
-		$(DIR)/Dockerfiles
-	@docker tag $(DOCKER_IMAGE):$(MARIADB_10_4_MAJOR) $(DOCKER_IMAGE):latest
-
-test-10.1: build-10.1
+test:  ## Test a specific version of mariadb ( make build v=10.4)
+	@$(eval version := $(or $(v),$(latest)))
+	@$(MAKE) build v=$(version)
 	@docker run --rm -t \
 		-e http_proxy=${http_proxy} \
 		-e https_proxy=${https_proxy} \
@@ -87,54 +50,18 @@ test-10.1: build-10.1
 		-v /tmp:/tmp \
 		-v /var/run/docker.sock:/var/run/docker.sock \
 		dsuite/goss:latest \
-		dgoss run -e MYSQL_BACKUP_DIR=/mysql/backup -e MYSQL_LOG_DIR=/mysql/logs --entrypoint=/goss/entrypoint.sh $(DOCKER_IMAGE):$(MARIADB_10_1_MAJOR)
-
-test-10.2: build-10.2
-	@docker run --rm -t \
-		-e http_proxy=${http_proxy} \
-		-e https_proxy=${https_proxy} \
-		-v $(DIR)/tests:/goss \
-		-v /tmp:/tmp \
-		-v /var/run/docker.sock:/var/run/docker.sock \
-		dsuite/goss:latest \
-		dgoss run -e MYSQL_BACKUP_DIR=/mysql/backup -e MYSQL_LOG_DIR=/mysql/logs --entrypoint=/goss/entrypoint.sh $(DOCKER_IMAGE):$(MARIADB_10_2_MAJOR)
-
-test-10.3: build-10.3
-	@docker run --rm -t \
-		-e http_proxy=${http_proxy} \
-		-e https_proxy=${https_proxy} \
-		-v $(DIR)/tests:/goss \
-		-v /tmp:/tmp \
-		-v /var/run/docker.sock:/var/run/docker.sock \
-		dsuite/goss:latest \
-		dgoss run -e MYSQL_BACKUP_DIR=/mysql/backup -e MYSQL_LOG_DIR=/mysql/logs --entrypoint=/goss/entrypoint.sh $(DOCKER_IMAGE):$(MARIADB_10_3_MAJOR)
-
-test-10.4: build-10.4
-	@docker run --rm -t \
-		-e http_proxy=${http_proxy} \
-		-e https_proxy=${https_proxy} \
-		-v $(DIR)/tests:/goss \
-		-v /tmp:/tmp \
-		-v /var/run/docker.sock:/var/run/docker.sock \
-		dsuite/goss:latest \
-		dgoss run -e MYSQL_BACKUP_DIR=/mysql/backup -e MYSQL_LOG_DIR=/mysql/logs --entrypoint=/goss/entrypoint.sh $(DOCKER_IMAGE):$(MARIADB_10_4_MAJOR)
+		dgoss run -e MYSQL_BACKUP_DIR=/mysql/backup -e MYSQL_LOG_DIR=/mysql/logs --entrypoint=/goss/entrypoint.sh $(DOCKER_IMAGE):$(MARIADB_$(version)_MAJOR)
 
 
-push-10.1: build-10.1
-	@docker push $(DOCKER_IMAGE):$(MARIADB_10_1_MAJOR)
-
-push-10.2: build-10.2
-	@docker push $(DOCKER_IMAGE):$(MARIADB_10_2_MAJOR)
-
-push-10.3: build-10.3
-	@docker push $(DOCKER_IMAGE):$(MARIADB_10_3_MAJOR)
-
-push-10.4: build-10.4
-	@docker push $(DOCKER_IMAGE):$(MARIADB_10_4_MAJOR)
-	@docker push $(DOCKER_IMAGE):latest
+push: ## Push a specific version of mariadb ( make build v=10.4)
+	@$(eval version := $(or $(v),$(latest)))
+	@docker push $(DOCKER_IMAGE):$(MARIADB_$(version)_MAJOR)
 
 
-shell-10.1: build-10.1
+shell: ## Get command prompt inside container
+	@$(eval version := $(or $(v),$(latest)))
+	@$(MAKE) build v=$(version)
+	@mkdir -p $(DIR)/tmp/db $(DIR)/tmp/db_backup $(DIR)/tmp/log
 	@docker run -it --rm \
 		-e http_proxy=${http_proxy} \
 		-e https_proxy=${https_proxy} \
@@ -145,63 +72,25 @@ shell-10.1: build-10.1
 		-e MYSQL_PASSWORD=test \
 		-e MYSQL_GENERAL_LOG=1 \
 		-e MYSQL_SLOW_QUERY_LOG=1 \
-		-e TIMEZONE=Europe/Paris \
+		-e CHARACTER_SET_SERVER=utf8mb4 \
+		-e COLLATION_SERVER=utf8mb4_general_ci \
+		-e INNODB_LARGE_PREFIX=on       \
+		-e INNODB_FILE_FORMAT=barracuda \
+		-e INNODB_FILE_PER_TABLE=on     \
+		-v $(DIR)/tmp/db:/mariadb/data \
+		-v $(DIR)/tmp/db_backup:/mariadb/backup \
+		-v $(DIR)/tmp/log:/var/log \
 		--name mariadb-10.1 \
-		$(DOCKER_IMAGE):$(MARIADB_10_1_MAJOR) \
+		$(DOCKER_IMAGE):$(MARIADB_$(version)_MAJOR) \
 		bash
 
-shell-10.2: build-10.2
-	@docker run -it --rm \
-		-e http_proxy=${http_proxy} \
-		-e https_proxy=${https_proxy} \
-		-e DEBUG_LEVEL=DEBUG \
-		-e MYSQL_ROOT_PASSWORD=rootpassword \
-		-e MYSQL_DATABASE=TestBase \
-		-e MYSQL_USER=test \
-		-e MYSQL_PASSWORD=test \
-		-e MYSQL_GENERAL_LOG=1 \
-		-e MYSQL_SLOW_QUERY_LOG=1 \
-		-e TIMEZONE=Europe/Paris \
-		--name mariadb-10.2 \
-		$(DOCKER_IMAGE):$(MARIADB_10_2_MAJOR) \
-		bash
 
-shell-10.3: build-10.3
-	@docker run -it --rm \
-		-e http_proxy=${http_proxy} \
-		-e https_proxy=${https_proxy} \
-		-e DEBUG_LEVEL=DEBUG \
-		-e MYSQL_ROOT_PASSWORD=rootpassword \
-		-e MYSQL_DATABASE=TestBase \
-		-e MYSQL_USER=test \
-		-e MYSQL_PASSWORD=test \
-		-e MYSQL_GENERAL_LOG=1 \
-		-e MYSQL_SLOW_QUERY_LOG=1 \
-		-e TIMEZONE=Europe/Paris \
-		--name mariadb-10.3 \
-		$(DOCKER_IMAGE):$(MARIADB_10_3_MAJOR) \
-		bash
+remove: ## Remove all generated images
+	@docker images | grep $(DOCKER_IMAGE) | tr -s ' ' | cut -d ' ' -f 2 | xargs -I {} docker rmi $(DOCKER_IMAGE):{} || true
+	@docker images | grep $(DOCKER_IMAGE) | tr -s ' ' | cut -d ' ' -f 3 | xargs -I {} docker rmi {} || true
 
-shell-10.4: build-10.4
-	@docker run -it --rm \
-		-e http_proxy=${http_proxy} \
-		-e https_proxy=${https_proxy} \
-		-e DEBUG_LEVEL=DEBUG \
-		-e MYSQL_ROOT_PASSWORD=rootpassword \
-		-e MYSQL_DATABASE=TestBase \
-		-e MYSQL_USER=test \
-		-e MYSQL_PASSWORD=test \
-		-e MYSQL_GENERAL_LOG=1 \
-		-e MYSQL_SLOW_QUERY_LOG=1 \
-		-e TIMEZONE=Europe/Paris \
-		--name mariadb-10.4 \
-		$(DOCKER_IMAGE):$(MARIADB_10_4_MAJOR) \
-		bash
 
-remove:
-	@docker images | grep $(DOCKER_IMAGE) | tr -s ' ' | cut -d ' ' -f 2 | xargs -I {} docker rmi $(DOCKER_IMAGE):{}
-
-readme:
+readme: ## Generate docker hub full description
 	@docker run -t --rm \
 		-e http_proxy=${http_proxy} \
 		-e https_proxy=${https_proxy} \

@@ -34,7 +34,7 @@
 [client]
 #password	= [your_password]
 port		= 3306
-socket		= /run/mysqld/mysqld.sock
+socket		= /run/mariadb/mariadb.sock
 
 # *** Application-specific options follow here ***
 
@@ -45,7 +45,7 @@ socket		= /run/mysqld/mysqld.sock
 
 # generic configuration options
 port		= 3306
-socket		= /run/mysqld/mysqld.sock
+socket		= /run/mariadb/mariadb.sock
 
 # back_log is the number of connections the operating system can keep in
 # the listen queue, before the MariaDB connection manager thread has

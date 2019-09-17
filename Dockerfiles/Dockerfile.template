@@ -1,21 +1,33 @@
-FROM dsuite/alpine-runit:latest
+FROM dsuite/alpine-runit:{{MARIADB_ALPINE}}
 
 LABEL maintainer="Hexosse <hexosse@gmail.com>" \
       description="Minimal Alpine image with MariaDb and runit process supervisor." \
       vendor="docker-suite" \
       license="MIT"
 
+ARG MYSQL_DATA_DIR
+ARG MYSQL_CONFIG_DIR
 ARG MYSQL_BACKUP_DIR
 ARG MYSQL_LOG_DIR
 
 ENV MARIADB_MAJOR="{{MARIADB_MAJOR}}" \
     MARIADB_VERSION="{{MARIADB_VERSION}}" \
-    MYSQL_BACKUP_DIR=${MYSQL_BACKUP_DIR:-/mysql/backup} \
-    MYSQL_LOG_DIR=${MYSQL_LOG_DIR:-/mysql/logs}
+    MARIADB_DATA_DIR=${MYSQL_DATA_DIR:-/mariadb/data} \
+    MARIADB_CONFIG_DIR=${MYSQL_CONFIG_DIR:-/mariadb/config} \
+    MARIADB_BACKUP_DIR=${MYSQL_BACKUP_DIR:-/mariadb/backup} \
+    MARIADB_LOG_DIR=${MYSQL_LOG_DIR:-/var/log/mariadb} \
+    MARIADB_USER="mariadb" \
+    MARIADB_GROUP="mariadb"
+
+ENV NEW_USER=$MARIADB_USER \
+    NEW_GROUP=$MARIADB_GROUP \
+    NEW_UID=101 \
+    NEW_GID=100
 
 
-# Copy patches wich will be used to install mariadb
-COPY patch/{{MARIADB_MAJOR}} /tmp/patch
+# Copy patch files
+COPY patches/{{MARIADB_MAJOR}} /tmp/patches
+COPY templates/{{MARIADB_MAJOR}} /etc/entrypoint.d/templates
 
 
 # Install
@@ -24,38 +36,38 @@ RUN \
 	set -x \
     # Update repository indexes
     && apk update \
-    # Create mysql group
-    && addgroup -g 101 -S mysql \
-    # Create mysql user
-    && adduser -u 100 -D -S -s /bin/bash -G mysql mysql \
     # Install run dependencies
     && apk-install -t .mariadb-run-deps \
+        gnupg \
         libaio \
-        # MariaDB 10.1 does not support OpenSSL 1.1.
-        $(test "${MARIADB_MAJOR}" = "10.1" && echo 'libressl' || echo 'openssl') \
         libstdc++ \
+        make \
+        pwgen \
         ncurses-libs \
         readline \
         pcre \
         xz \
         zlib \
+        # MariaDB 10.1 does not support OpenSSL 1.1.
+        $(test "${MARIADB_MAJOR}" = "10.1" && echo 'libressl' || echo 'openssl') \
     # Install build dependencies
     && apk-install -t .mariadb-build-deps \
-        ##
-        alpine-sdk \
+        attr \
+        autoconf \
+        bison \
+        build-base \
         cmake \
         coreutils \
-        ##
-        bison \
         libaio-dev \
-        # MariaDB 10.1 does not support OpenSSL 1.1.
-        $(test "${MARIADB_MAJOR}" = "10.1" && echo 'libressl-dev' || echo 'openssl-dev') \
         linux-headers \
         ncurses-dev \
+        patch \
         readline-dev \
         pcre-dev \
         xz-dev \
         zlib-dev \
+        # MariaDB 10.1 does not support OpenSSL 1.1.
+        $(test "${MARIADB_MAJOR}" = "10.1" && echo 'libressl-dev' || echo 'openssl-dev') \
     # Download mariadb source files
     && mariadb_url="https://downloads.mariadb.com/MariaDB/mariadb-${MARIADB_VERSION}/source/mariadb-${MARIADB_VERSION}.tar.gz" \
     && curl -fSL "${mariadb_url}" -o /tmp/mariadb.tar.gz \
@@ -65,20 +77,20 @@ RUN \
     # cd to source folder
     && cd "/tmp/mariadb-${MARIADB_VERSION}" \
     # Apply patches
-    && for i in `ls -v /tmp/patch/*.patch`; do patch -p0 -i "${i}"; done \
+    && for patch in /tmp/patches/*.patch; do patch -p1 -i "$patch"; done \
     # Build from source
     # https://mariadb.com/kb/en/library/specifying-which-plugins-to-build/
     # https://mariadb.com/kb/en/library/list-of-plugins/
     && cmake . \
         -DBUILD_CONFIG=mysql_release \
    		-DCMAKE_INSTALL_PREFIX=/usr \
-   		-DSYSCONFDIR=/mysql/conf \
-   		-DMYSQL_DATADIR=/mysql/db \
-   		-DMYSQL_UNIX_ADDR=/run/mysqld/mysqld.sock \
+   		-DSYSCONFDIR=$MARIADB_CONFIG_DIR \
+   		-DMYSQL_DATADIR=$MARIADB_DATA_DIR \
+   		-DMYSQL_UNIX_ADDR=/run/mariadb/mariadb.sock \
    		-DDEFAULT_CHARSET=utf8 \
-   		-DDEFAULT_COLLATION=utf8_unicode_ci \
+   		-DDEFAULT_COLLATION=utf8_general_ci \
    		-DENABLED_LOCAL_INFILE=ON \
-   		-DINSTALL_INFODIR=share/mysql/docs \
+   		-DINSTALL_INFODIR=share/mariadb/docs \
    		-DINSTALL_MANDIR=share/man \
    		-DINSTALL_PLUGINDIR=lib/mysql/plugin \
    		-DINSTALL_SCRIPTDIR=bin \
@@ -88,13 +100,17 @@ RUN \
    		-DINSTALL_MYSQLSHAREDIR=share/mysql \
    		-DINSTALL_DOCDIR=share/mysql/docs \
    		-DINSTALL_SHAREDIR=share/mysql \
-		-DTMPDIR=/var/tmp \
+		# -DTMPDIR=/var/tmp \
+		-DCONNECT_WITH_MYSQL=ON \
+		-DCONNECT_WITH_LIBXML2=system \
+		-DCONNECT_WITH_ODBC=NO \
+		-DCONNECT_WITH_JDBC=NO \
 		-DPLUGIN_ARCHIVE=YES \
 		-DPLUGIN_ARIA=YES \
 		-DPLUGIN_BLACKHOLE=YES \
+		-DPLUGIN_CASSANDRA=NO \
 		-DPLUGIN_CONNECT=YES \
 		-DPLUGIN_CRACKLIB_PASSWORD_CHECK=NO \
-		-DPLUGIN_CASSANDRA=NO \
 		-DPLUGIN_CSV=YES \
 		-DPLUGIN_FEEDBACK=NO \
 		-DPLUGIN_LOCALES=YES \
@@ -136,6 +152,7 @@ RUN \
    		-DWITHOUT_EXAMPLE_STORAGE_ENGINE=1 \
    		-DWITHOUT_FEDERATED_STORAGE_ENGINE=1 \
    		-DWITHOUT_PBXT_STORAGE_ENGINE=1 \
+		-DSKIP_TESTS=ON \
     && make -j "$(nproc)" \
     && make install \
     # Validate install
@@ -170,21 +187,6 @@ RUN \
                 echo "$XATTR" | setfattr --restore=-; \
             fi; \
         done \
-    # Make sure that mysql user can run MariaDB
-    && mkdir -p \
-        /mysql/db \
-        /mysql/conf \
-        /usr/lib/mysql/plugin \
-        /var/run/mysqld/ \
-        "${MYSQL_BACKUP_DIR}" \
-        "${MYSQL_LOG_DIR}" \
-    && chown -R mysql:mysql \
-        /mysql/db \
-        /mysql/conf \
-        /usr/lib/mysql/plugin \
-        /var/run/mysqld/ \
-        "${MYSQL_BACKUP_DIR}" \
-        "${MYSQL_LOG_DIR}" \
     # Validate install
     && mysql -V \
     && mysqladmin -V \
@@ -200,16 +202,8 @@ RUN \
 # Copy scripts
 COPY rootfs /
 
-
-# Entrypoint scripts must be executable
-RUN \
-	# Print executed commands
-	set -x \
-    # set scripts executable
-    && chmod +x /etc/entrypoint.d/*.sh
-
 # Add volume to allow persistence
-VOLUME ["/mysql"]
+VOLUME ["/mariadb"]
 
 # Expose MariaDB port
 EXPOSE 3306

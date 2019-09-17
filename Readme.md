@@ -20,12 +20,13 @@ This is a docker image for [MariaDB][MariaDB] database running on [Alpine contai
 
 ## ![](https://github.com/docker-suite/artwork/raw/master/various/pin/png/pin_16.png) Volumes
 
-- **/mysql**
-    - `/mysql/conf` : contains mariadb configuration file (my.cnf)
-    - `/mysql/conf/conf.d/` : any configuration files placed in this folder are included by my.cnf
-    - `/mysql/db` : database folder
-    - `/mysql/logs` : logs folder if general log or slow query log is enable 
-    - `/mysql/backup` : backup folder
+- **/mariadb**
+    - `/mariadb/config` : contains mariadb configuration file (mariadb.cnf)
+    - `/mariadb/config/conf.d/` : any configuration files placed in this folder are included by mariadb.cnf
+    - `/mariadb/data` : database folder
+    - `/mariadb/backup` : backup folder
+- **/var/log/mariadb**
+    - `/var/log/mariadb` : logs folder if general log or slow query log is enable 
 
 ## ![](https://github.com/docker-suite/artwork/raw/master/various/pin/png/pin_16.png) Ports
 
@@ -41,13 +42,13 @@ This is a docker image for [MariaDB][MariaDB] database running on [Alpine contai
 | `MYSQL_DATABASE`              | `[empty]`                                             | Create a database as provided by input                    |
 | `MYSQL_USER`                  | `[empty]`                                             | Create a user with owner permissions over said database   |
 | `MYSQL_PASSWORD`              | `[empty]`                                             | changes password of the provided user (not root)          |
-| `MYSQL_DATA_DIR`              | `/mysql/db/`                                          | Change mysql default directory                            |
+| `MYSQL_DATA_DIR`              | `/mariadb/data/`                                      | Change mysql default directory                            |
 | `MYSQL_INSTALL_PARAMS`        | `[empty]`                                             | Add parameters to mysql_install_db</br><sub>⚠️try to set to `--innodb-flush-method=fsync` to persist volume on windows</sub> |
 | `MYSQL_STARTCMD`              | `/usr/bin/mysqld`                                     | Default start command                                     |
 | `MYSQL_STARTPARAMS`           | `--skip-host-cache --skip-name-resolve --debug-gdb`   | Default start parameters                                  |
-| `MYSQL_BACKUP_DIR`            | `/mysql/backup`                                       | Folder used to store backups                              |
+| `MYSQL_BACKUP_DIR`            | `/mariadb/backup`                                       | Folder used to store backups                              |
 | `MYSQL_BACKUP_COUNT`          | `14`                                                  | Retaining days                                            |
-| `MYSQL_LOG_DIR`               | `/mysql/logs`                                         | Log folder                                                |
+| `MYSQL_LOG_DIR`               | `/var/log/mariadb`                                         | Log folder                                                |
 
 ## ![](https://github.com/docker-suite/artwork/raw/master/various/pin/png/pin_16.png) Environment variables (config)
 
@@ -148,7 +149,7 @@ docker run -d --name=mariadb \
         -e MYSQL_DATABASE=<databasename> \
         -e MYSQL_USER=<username> \
         -e MYSQL_PASSWORD=<password> \
-        -v $(PWD)/mariadb/:/mysql \
+        -v $(PWD)/mariadb/:/mariadb \
             dsuite/mariadb
 ```
 
@@ -163,7 +164,7 @@ docker run -d --name=mariadb \
         -e MYSQL_USER=<username> \
         -e MYSQL_PASSWORD=<password> \
         -e MYSQL_STARTPARAMS='--skip-networking --skip-host-cache --skip-name-resolve --debug-gdb' \
-        -v $(PWD)/mariadb/:/mysql \
+        -v $(PWD)/mariadb/:/mariadb \
             dsuite/mariadb
 ```
 
@@ -177,11 +178,11 @@ docker run -d --name=mariadb \
         -e MYSQL_USER=<username> \
         -e MYSQL_PASSWORD=<password> \
         -e MYSQL_INSTALL_PARAMS='--innodb-flush-method=fsync' \
-        -v $(PWD)/mariadb/:/mysql \
+        -v $(PWD)/mariadb/:/mariadb \
             dsuite/mariadb
 ```
 
-To **start** or **stop** MariDB, get a bash command prompt inside the container:
+To **start** or **stop** MariaDB, get a bash command prompt inside the container:
 
 ```bash
 docker exec -it mariadb bash

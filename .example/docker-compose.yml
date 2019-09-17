@@ -1,0 +1,36 @@
+version: '3'
+
+volumes:
+  mariadb-data:
+
+services:
+
+  mariadb:
+    image: dsuite/mariadb:10.1
+    restart: always
+    environment:
+      - DEBUG_LEVEL=DEBUG
+      - http_proxy=${http_proxy}
+      - https_proxy=${https_proxy}
+      - MYSQL_ROOT_PASSWORD=MyRootPassword
+      - MYSQL_DATABASE=my_database
+      - MYSQL_USER=MyUSer
+      - MYSQL_PASSWORD=MyDbPassword
+    volumes:
+     - ./config:/mariadb/config
+     - mariadb-data:/mariadb/data
+     - ./tmp/db_backup:/mariadb/backup
+     - ./tmp/log:/var/log
+
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    restart: always
+    environment:
+      - PMA_HOST=mariadb
+      - PMA_PORT=3306
+    ports:
+      - 8080:80
+    volumes:
+      - /sessions
+    depends_on:
+      - mariadb
