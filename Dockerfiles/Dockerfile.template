@@ -41,6 +41,7 @@ RUN \
         gnupg \
         libaio \
         libstdc++ \
+        libxml2 \
         make \
         pwgen \
         ncurses-libs \
@@ -58,7 +59,11 @@ RUN \
         build-base \
         cmake \
         coreutils \
+        curl-dev \
         libaio-dev \
+        libarchive-dev \
+        libevent-dev \
+        libxml2-dev \
         linux-headers \
         ncurses-dev \
         patch \
@@ -100,7 +105,7 @@ RUN \
    		-DINSTALL_MYSQLSHAREDIR=share/mysql \
    		-DINSTALL_DOCDIR=share/mysql/docs \
    		-DINSTALL_SHAREDIR=share/mysql \
-		# -DTMPDIR=/var/tmp \
+	    -DTMPDIR=/var/tmp/mariadb \
 		-DCONNECT_WITH_MYSQL=ON \
 		-DCONNECT_WITH_LIBXML2=system \
 		-DCONNECT_WITH_ODBC=NO \
@@ -136,6 +141,11 @@ RUN \
 		-DWITH_INNODB_LZMA=ON \
 		-DWITH_INNODB_LZO=OFF \
 		-DWITH_INNODB_SNAPPY=OFF \
+		-DWITH_ROCKSDB_BZIP2=OFF \
+		-DWITH_ROCKSDB_JEMALLOC=OFF \
+		-DWITH_ROCKSDB_LZ4=OFF \
+		-DWITH_ROCKSDB_ZSTD=OFF \
+		-DWITH_ROCKSDB_SNAPPY=OFF \
    		-DWITH_JEMALLOC=NO \
 		-DWITH_LIBARCHIVE=system \
 		-DWITH_LIBNUMA=NO \
@@ -153,6 +163,7 @@ RUN \
    		-DWITHOUT_FEDERATED_STORAGE_ENGINE=1 \
    		-DWITHOUT_PBXT_STORAGE_ENGINE=1 \
 		-DSKIP_TESTS=ON \
+    && cmake -L \
     && make -j "$(nproc)" \
     && make install \
     # Validate install
