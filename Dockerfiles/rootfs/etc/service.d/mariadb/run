@@ -6,6 +6,8 @@
 # set -e : Exit the script if any statement returns a non-true return value.
 # set -u : Exit the script when using uninitialised variable.
 set -eu
+# avoid globbing (expansion of *).
+set -f
 
 # Add libraries
 source /usr/local/lib/bash-logger.sh
@@ -26,10 +28,25 @@ export MYSQL_DATABASE=${MYSQL_DATABASE:=''}
 export MYSQL_USER=${MYSQL_USER:=''}
 export MYSQL_PASSWORD=${MYSQL_PASSWORD:=''}
 
-# Make sure tmp folder exist
-mkdir -p /var/tmp/mariadb
-chown -R $MARIADB_USER:$MARIADB_GROUP /var/tmp/mariadb
+#
+_check_config() {
+	toRun=( "$@" --verbose --help --log-bin-index="$(mktemp -u)" )
+	if ! errors="$("${toRun[@]}" 2>&1 >/dev/null)"; then
+		ERROR "mysqld failed while attempting to check config"
+        ERROR "command was: \"${toRun[*]}\""
+		$errors | ERROR
+		exit 1
+	fi
+}
 
+# Fetch value from server config
+# We use mysqld --verbose --help instead of my_print_defaults because the
+# latter only show values present in config files, and not server defaults
+_get_config() {
+	local conf="$1"; shift
+	"$@" --verbose --help --log-bin-index="$(mktemp -u)" 2>/dev/null \
+		| awk '$1 == "'"$conf"'" && /^[^ \t]/ { sub(/^[^ \t]+[ \t]+/, ""); print; exit }'
+}
 
 # If the MYSQL_DATA_DIR doesn't exist, this mean
 # that we perform the first install.
@@ -37,22 +54,13 @@ if [ -z "$(ls -A $MYSQL_DATA_DIR)" ]; then
 
     # First, check for root password
     if [ -z "$MYSQL_ROOT_PASSWORD" ] && [ "$MYSQL_RANDOM_ROOT_PASSWORD" = 'false' ] && [ "$MYSQL_ALLOW_EMPTY_PASSWORD" = 'false' ]; then
-        WARNING ''
-        WARNING ''
-        WARNING 'Error: database is uninitialized and password option is not specified'
-        WARNING 'You need to specify one of MYSQL_ROOT_PASSWORD, MYSQL_RANDOM_ROOT_PASSWORD or MYSQL_ALLOW_EMPTY_PASSWORD'
-        WARNING ''
+        ERROR ''
+        ERROR ''
+        ERROR 'Error: database is uninitialized and password option is not specified'
+        ERROR 'You need to specify one of MYSQL_ROOT_PASSWORD, MYSQL_RANDOM_ROOT_PASSWORD or MYSQL_ALLOW_EMPTY_PASSWORD'
+        ERROR ''
         exit 1
     fi
-
-    NOTICE ''
-    NOTICE "An empty or uninitialized MariaDB volume is detected in $MYSQL_DATA_DIR"
-    NOTICE ''
-    NOTICE 'Installing MariaDB ...'
-
-    # Create the MYSQL_DATA_DIR and give full access to mariadb user.
-    mkdir -p "$MYSQL_DATA_DIR"
-    chown -R $MARIADB_USER:$MARIADB_GROUP "$MYSQL_DATA_DIR"
 
     # By default, use the root password defined by the user
     # or use a random password if MYSQL_RANDOM_ROOT_PASSWORD is true
@@ -68,56 +76,90 @@ if [ -z "$(ls -A $MYSQL_DATA_DIR)" ]; then
         fi
     fi
 
+    # Create the MYSQL_DATA_DIR and give full access to mariadb user.
+    mkdir -p "$MYSQL_DATA_DIR"
+    chown -R $MARIADB_USER:$MARIADB_GROUP "$MYSQL_DATA_DIR"
+
+    # Make sure tmp folder exist
+    mkdir -p /mariadb/tmp
+    chown -R $MARIADB_USER:$MARIADB_GROUP /mariadb/tmp
+
+
+    NOTICE ''
+    NOTICE "An empty or uninitialized MariaDB volume is detected in $MYSQL_DATA_DIR"
+    NOTICE ''
+    NOTICE 'Installing MariaDB ...'
+
+    # List of args to use to install the database
+    declare -a installArgs
+    installArgs=(  --user="$MARIADB_USER" )
+    installArgs+=( --basedir=/usr )
+    installArgs+=( --datadir="$MYSQL_DATA_DIR" )
+    installArgs+=( --rpm )
+    installArgs+=( --cross-bootstrap )
+    if { mysql_install_db --help || :; } | grep -q -- '--auth-root-authentication-method'; then
+        # beginning in 10.4.3, install_db uses "socket" which only allows system user root to connect, switch back to "normal" to allow mysql root without a password
+        # see https://github.com/MariaDB/server/commit/b9f3f06857ac6f9105dc65caae19782f09b47fb3
+        # (this flag doesn't exist in 10.0 and below)
+        installArgs+=( --auth-root-authentication-method=normal )
+    fi
+    installArgs+=( --defaults-file=$MARIADB_CONFIG_DIR/mariadb.cnf )
+
     # It's time to initialize the database
     NOTICE ''
     NOTICE 'Initializing database ...'
-    NOTICE '  mysql_install_db'
-    NOTICE "    --user=$MARIADB_USER"
-    NOTICE '    --basedir=/usr'
-    NOTICE '    --datadir='"$MYSQL_DATA_DIR"
-    NOTICE '    --rpm'
-    NOTICE '    --cross-bootstrap'
-    if [ -n "$MYSQL_INSTALL_PARAMS" ] ; then NOTICE '    '"$MYSQL_INSTALL_PARAMS"; fi
-    NOTICE "    --defaults-file=$MARIADB_CONFIG_DIR/mariadb.cnf"
     NOTICE ''
-    mysql_install_db --user=$MARIADB_USER --basedir=/usr --datadir="$MYSQL_DATA_DIR" --rpm --cross-bootstrap "$MYSQL_INSTALL_PARAMS" --defaults-file=$MARIADB_CONFIG_DIR/mariadb.cnf
+    NOTICE 'mysql_install_db'
+    for i in "${!installArgs[@]}"; do
+        NOTICE "    ${installArgs[$i]}"
+    done
+    NOTICE ''
+
+    mysql_install_db "${installArgs[@]}"
+
     NOTICE ''
     NOTICE 'Database initialized'
 
+
     # Init file used at startup
-    INIT_FILE="/var/tmp/mariadb/mariadb-boot.sql"
+    INIT_FILE="/mariadb/tmp/mariadb-boot.sql"
+
 
     # Create root user
     echo "
     USE mysql;
-    FLUSH PRIVILEGES;
+    SET @@SESSION.SQL_LOG_BIN=0;
+    DELETE FROM mysql.user WHERE user NOT IN ('mysql.sys', 'mysqlxsys', 'root') OR host NOT IN ('localhost') ;
     GRANT ALL ON *.* TO 'root'@'%' identified by '$MYSQL_ROOT_PASSWORD' WITH GRANT OPTION;
     GRANT ALL ON *.* TO 'root'@'localhost' identified by '$MYSQL_ROOT_PASSWORD' WITH GRANT OPTION;
-    SET PASSWORD FOR 'root'@'localhost'=PASSWORD('${MYSQL_ROOT_PASSWORD}');
-    DROP DATABASE IF EXISTS test;
-    FLUSH PRIVILEGES;
-    " >| ${INIT_FILE}
+    FLUSH PRIVILEGES;" >| ${INIT_FILE}
+
+    # Remove test database
+    echo "
+    DROP DATABASE IF EXISTS test;" >> ${INIT_FILE}
 
     # Create database
-    if [ -n "${MYSQL_USER}" ] && [ -n "${MYSQL_DATABASE}" ]; then
+    if [ -n "${MYSQL_DATABASE}" ]; then
         NOTICE ''
-        NOTICE "Creating database ${MYSQL_DATABASE} ..."
+        NOTICE "Preparing database ${MYSQL_DATABASE} ..."
         echo "
-        CREATE DATABASE IF NOT EXISTS \`${MYSQL_DATABASE}\`;
-        GRANT ALL PRIVILEGES ON \`${MYSQL_DATABASE}\`.* TO '${MYSQL_USER}'@'%' IDENTIFIED BY '${MYSQL_PASSWORD}';
-        FLUSH PRIVILEGES;
-        " >> ${INIT_FILE}
+        CREATE DATABASE IF NOT EXISTS \`${MYSQL_DATABASE}\`;" >> ${INIT_FILE}
+        # Add user to databse
+        if [ -n "${MYSQL_USER}" ] && [ -n "${MYSQL_PASSWORD}" ]; then
+            echo "
+            GRANT ALL PRIVILEGES ON \`${MYSQL_DATABASE}\`.* TO '${MYSQL_USER}'@'%' IDENTIFIED BY '$MYSQL_PASSWORD';
+            FLUSH PRIVILEGES;" >> ${INIT_FILE}
+        fi
     fi
 
     # Create user database
-    if [ -n "${MYSQL_USER}" ] && [ -z "${MYSQL_DATABASE}" ]; then
+    if [ -n "${MYSQL_USER}" ] && [ -n "${MYSQL_PASSWORD}" ] && [ -z "${MYSQL_DATABASE}" ]; then
         NOTICE ''
-        NOTICE "Creating user database ${MYSQL_USER} ..."
+        NOTICE "Preparing user database ${MYSQL_USER} ..."
         echo "
         CREATE DATABASE IF NOT EXISTS \`${MYSQL_USER}\`;
         GRANT ALL PRIVILEGES ON \`${MYSQL_USER}\`.* TO '${MYSQL_USER}'@'%' IDENTIFIED BY '${MYSQL_PASSWORD}';
-        FLUSH PRIVILEGES;
-        " >> ${INIT_FILE}
+        FLUSH PRIVILEGES;" >> ${INIT_FILE}
     fi
 
     # Update start command
@@ -134,30 +176,30 @@ fi
 # Make sure the backup file can be excuted
 chmod +x /etc/periodic/daily_3am/db_backup
 
+# User start parameteres
+userstartArgs=(${MYSQL_STARTPARAMS})
+# Set start parameters
+declare -a startArgs
+startArgs=(  --user="$MARIADB_USER" )
+startArgs+=( --basedir=/usr )
+startArgs+=( --datadir="$MYSQL_DATA_DIR" )
+for i in "${!userstartArgs[@]}"; do
+startArgs+=( ${userstartArgs[i]} )
+done
+startArgs+=( --plugin-dir=/usr/lib/mysql/ )
+startArgs+=( --pid-file=/var/run/mariadb/mariadb.pid )
+startArgs+=( --socket=/var/run/mariadb/mariadb. )
+
 # Let's go and start MariaDB
 NOTICE ''
 NOTICE 'Starting MariaDB'
-NOTICE "  su-exec ${MARIADB_USER}"
-NOTICE "    ${MYSQL_STARTCMD}"
-NOTICE "    --user=$MARIADB_USER"
-NOTICE "    --basedir=/usr"
-NOTICE "    --datadir=$MYSQL_DATA_DIR"
-NOTICE "    --plugin-dir=/usr/lib/mysql/plugin"
-NOTICE "    --pid-file=/var/run/mariadb/mariadb.pid"
-NOTICE "    --socket=/var/run/mariadb/mariadb.sock"
-if [ -n "$MYSQL_STARTPARAMS" ] ; then NOTICE '    '"$MYSQL_STARTPARAMS"; fi
 NOTICE ''
+NOTICE "${MYSQL_STARTCMD}"
+for i in "${!startArgs[@]}"; do
+    NOTICE "    ${startArgs[$i]}"
+done
 
-exec su-exec ${MARIADB_USER} \
-    ${MYSQL_STARTCMD} \
-    --user=${MARIADB_USER} \
-    --basedir=/usr \
-    --datadir="$MYSQL_DATA_DIR" \
-    --plugin-dir=/usr/lib/mysql/plugin \
-    --pid-file=/var/run/mariadb/mariadb.pid \
-    --socket=/var/run/mariadb/mariadb.sock \
-    ${MYSQL_STARTPARAMS}
-
+exec ${MYSQL_STARTCMD} "${startArgs[@]}"
 
 # This exit code will be sent as the first parameter to the finish script
 exit 1

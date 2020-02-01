@@ -27,7 +27,6 @@ ENV NEW_USER=$MARIADB_USER \
 
 # Copy patch files
 COPY patches/{{MARIADB_MAJOR}} /tmp/patches
-COPY templates/{{MARIADB_MAJOR}} /etc/entrypoint.d/templates
 
 
 # Install
@@ -38,10 +37,12 @@ RUN \
     && apk update \
     # Install run dependencies
     && apk-install -t .mariadb-run-deps \
-        gnupg \
         libaio \
         libstdc++ \
         libxml2 \
+        # MariaDB 10.1 does not support OpenSSL 1.1.
+        $(test "{{MARIADB_MAJOR}}" = "10.1" && echo 'libressl' || echo 'openssl') \
+        linux-pam \
         make \
         pwgen \
         ncurses-libs \
@@ -49,8 +50,6 @@ RUN \
         pcre \
         xz \
         zlib \
-        # MariaDB 10.1 does not support OpenSSL 1.1.
-        $(test "${MARIADB_MAJOR}" = "10.1" && echo 'libressl' || echo 'openssl') \
     # Install build dependencies
     && apk-install -t .mariadb-build-deps \
         attr \
@@ -59,20 +58,18 @@ RUN \
         build-base \
         cmake \
         coreutils \
-        curl-dev \
         libaio-dev \
-        libarchive-dev \
-        libevent-dev \
         libxml2-dev \
+        # MariaDB 10.1 does not support OpenSSL 1.1.
+        $(test "{{MARIADB_MAJOR}}" = "10.1" && echo 'libressl-dev' || echo 'openssl-dev') \
         linux-headers \
+        linux-pam-dev \
         ncurses-dev \
         patch \
         readline-dev \
         pcre-dev \
         xz-dev \
         zlib-dev \
-        # MariaDB 10.1 does not support OpenSSL 1.1.
-        $(test "${MARIADB_MAJOR}" = "10.1" && echo 'libressl-dev' || echo 'openssl-dev') \
     # Download mariadb source files
     && mariadb_url="https://downloads.mariadb.com/MariaDB/mariadb-${MARIADB_VERSION}/source/mariadb-${MARIADB_VERSION}.tar.gz" \
     && curl -fSL "${mariadb_url}" -o /tmp/mariadb.tar.gz \
@@ -92,8 +89,8 @@ RUN \
    		-DSYSCONFDIR=$MARIADB_CONFIG_DIR \
    		-DMYSQL_DATADIR=$MARIADB_DATA_DIR \
    		-DMYSQL_UNIX_ADDR=/run/mariadb/mariadb.sock \
-   		-DDEFAULT_CHARSET=utf8 \
-   		-DDEFAULT_COLLATION=utf8_general_ci \
+   		-DDEFAULT_CHARSET=utf8mb4 \
+   		-DDEFAULT_COLLATION=utf8mb4_general_ci  \
    		-DENABLED_LOCAL_INFILE=ON \
    		-DINSTALL_INFODIR=share/mariadb/docs \
    		-DINSTALL_MANDIR=share/man \
@@ -105,7 +102,7 @@ RUN \
    		-DINSTALL_MYSQLSHAREDIR=share/mysql \
    		-DINSTALL_DOCDIR=share/mysql/docs \
    		-DINSTALL_SHAREDIR=share/mysql \
-	    -DTMPDIR=/var/tmp/mariadb \
+	    -DTMPDIR=/mariadb/tmp \
 		-DCONNECT_WITH_MYSQL=ON \
 		-DCONNECT_WITH_LIBXML2=system \
 		-DCONNECT_WITH_ODBC=NO \
@@ -126,7 +123,7 @@ RUN \
 		-DPLUGIN_SIMPLE_PASSWORD_CHECK=YES \
 		-DPLUGIN_SPHINX=NO \
 		-DPLUGIN_TOKUDB=NO \
-		-DPLUGIN_AUTH_PAM=NO \
+		# -DPLUGIN_AUTH_PAM=NO \
 		-DPLUGIN_AUTH_GSSAPI=NO \
 		-DPLUGIN_AUTH_GSSAPI_CLIENT=OFF \
    		-DWITH_ARCHIVE_STORAGE_ENGINE=1 \
@@ -209,6 +206,8 @@ RUN \
 	&& apk-remove --purge .mariadb-build-deps \
 	&& apk-cleanup
 
+# Copy templates files
+COPY templates /etc/entrypoint.d/templates
 
 # Copy scripts
 COPY rootfs /

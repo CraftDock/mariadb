@@ -12,6 +12,7 @@ help: ## Display this help
 	@awk 'BEGIN {FS = ":.*##"} /^[a-zA-Z_-]+:.*?##/ { printf "  \033[32m%-15s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
 
 build: ## Build containers
+	@mkdir -p $(DIR)/tmp/db_backup $(DIR)/tmp/log
 	docker-compose --project-name example build
 
 up: build ## Satrt containers
@@ -21,5 +22,5 @@ down: ## Stop and remove containers
 	docker-compose --project-name example down
 
 remove:
-	@rm -rf $(DIR)/.tmp
-	@docker volume rm example_mariadb-data
+	@rm -rf $(DIR)/tmp || true
+	@docker volume rm example_mariadb-data || true

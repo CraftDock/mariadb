@@ -61,7 +61,7 @@ push: ## Push a specific version of mariadb ( make build v=10.4)
 shell: ## Get command prompt inside container
 	@$(eval version := $(or $(v),$(latest)))
 	@$(MAKE) build v=$(version)
-	@mkdir -p $(DIR)/tmp/db $(DIR)/tmp/db_backup $(DIR)/tmp/log
+	@mkdir -p $(DIR)/tmp/db_config $(DIR)/tmp/db_data $(DIR)/tmp/db_backup $(DIR)/tmp/log
 	@docker run -it --rm \
 		-e http_proxy=${http_proxy} \
 		-e https_proxy=${https_proxy} \
@@ -70,14 +70,11 @@ shell: ## Get command prompt inside container
 		-e MYSQL_DATABASE=TestBase \
 		-e MYSQL_USER=test \
 		-e MYSQL_PASSWORD=test \
-		-e MYSQL_GENERAL_LOG=1 \
-		-e MYSQL_SLOW_QUERY_LOG=1 \
-		-e CHARACTER_SET_SERVER=utf8mb4 \
-		-e COLLATION_SERVER=utf8mb4_general_ci \
 		-e INNODB_LARGE_PREFIX=on       \
 		-e INNODB_FILE_FORMAT=barracuda \
 		-e INNODB_FILE_PER_TABLE=on     \
-		-v $(DIR)/tmp/db:/mariadb/data \
+		-v $(DIR)/tmp/db_config:/mariadb/config \
+		-v $(DIR)/tmp/db_data:/mariadb/data \
 		-v $(DIR)/tmp/db_backup:/mariadb/backup \
 		-v $(DIR)/tmp/log:/var/log \
 		--name mariadb-10.1 \
