@@ -1,5 +1,7 @@
-## Name of the image
+## Meta data about the image
 DOCKER_IMAGE=dsuite/mariadb
+DOCKER_IMAGE_CREATED=$(shell date -u +'%Y-%m-%dT%H:%M:%SZ')
+DOCKER_IMAGE_REVISION=$(shell git rev-parse --short HEAD)
 
 ## Current directory
 DIR:=$(strip $(shell dirname $(realpath $(lastword $(MAKEFILE_LIST)))))
@@ -28,6 +30,8 @@ build: ## Build a specific version of mariadb ( make build v=10.4)
 		-e MARIADB_MAJOR=$(MARIADB_$(version)_MAJOR) \
 		-e MARIADB_VERSION=$(MARIADB_$(version)_VERSION) \
 		-e MARIADB_ALPINE=$(MARIADB_$(version)_ALPINE) \
+		-e DOCKER_IMAGE_CREATED=$(DOCKER_IMAGE_CREATED) \
+		-e DOCKER_IMAGE_REVISION=$(DOCKER_IMAGE_REVISION) \
 		-v $(DIR)/Dockerfiles:/data \
 		dsuite/alpine-data \
 		sh -c "templater Dockerfile.template > Dockerfile-$(MARIADB_$(version)_MAJOR)"

@@ -1,9 +1,16 @@
 FROM dsuite/alpine-runit:{{MARIADB_ALPINE}}
 
 LABEL maintainer="Hexosse <hexosse@gmail.com>" \
-      description="Minimal Alpine image with MariaDb and runit process supervisor." \
-      vendor="docker-suite" \
-      license="MIT"
+    org.opencontainers.image.title="docker-suite dsuite/mariadb image" \
+    org.opencontainers.image.description="Minimal Alpine image with MariaDb and runit process supervisor" \
+    org.opencontainers.image.authors="Hexosse <hexosse@gmail.com>" \
+    org.opencontainers.image.vendor="docker-suite" \
+    org.opencontainers.image.licenses="MIT" \
+    org.opencontainers.image.url="https://github.com/docker-suite/mariadb" \
+    org.opencontainers.image.source="https://github.com/docker-suite/mariadb" \
+    org.opencontainers.image.documentation="https://github.com/docker-suite/mariadb/blob/master/Readme.md" \
+    org.opencontainers.image.created="{{DOCKER_IMAGE_CREATED}}" \
+    org.opencontainers.image.revision="{{DOCKER_IMAGE_REVISION}}"
 
 ARG MYSQL_DATA_DIR
 ARG MYSQL_CONFIG_DIR
