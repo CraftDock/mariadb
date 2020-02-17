@@ -30,7 +30,7 @@ export MYSQL_PASSWORD=${MYSQL_PASSWORD:=''}
 
 #
 _check_config() {
-	toRun=( "$@" --verbose --help --log-bin-index="$(mktemp -u)" )
+	toRun=( mysqld --verbose --help --log-bin-index="$(mktemp -u)" )
 	if ! errors="$("${toRun[@]}" 2>&1 >/dev/null)"; then
 		ERROR "mysqld failed while attempting to check config"
         ERROR "command was: \"${toRun[*]}\""
@@ -44,7 +44,7 @@ _check_config() {
 # latter only show values present in config files, and not server defaults
 _get_config() {
 	local conf="$1"; shift
-	"$@" --verbose --help --log-bin-index="$(mktemp -u)" 2>/dev/null \
+	mysqld --verbose --help --log-bin-index="$(mktemp -u)" 2>/dev/null \
 		| awk '$1 == "'"$conf"'" && /^[^ \t]/ { sub(/^[^ \t]+[ \t]+/, ""); print; exit }'
 }
 
@@ -80,10 +80,15 @@ if [ -z "$(ls -A $MYSQL_DATA_DIR)" ]; then
     mkdir -p "$MYSQL_DATA_DIR"
     chown -R $MARIADB_USER:$MARIADB_GROUP "$MYSQL_DATA_DIR"
 
-    # Make sure tmp folder exist
-    mkdir -p /mariadb/tmp
-    chown -R $MARIADB_USER:$MARIADB_GROUP /mariadb/tmp
+    # Get tmpdir from config file
+    TMPDIR=$(grep "^tmpdir" $MARIADB_CONFIG_DIR/mariadb.cnf | awk -F"=" '{print $2}' | xargs)
+    if [ -z "$TMPDIR" ]; then TMPDIR="/tmp"; fi
 
+    # Make sure tmpdir folder exist
+    if [ ! "$TMPDIR" = "/tmp" ]; then
+        mkdir -p $TMPDIR
+        chown -R $MARIADB_USER:$MARIADB_GROUP $TMPDIR
+    fi
 
     NOTICE ''
     NOTICE "An empty or uninitialized MariaDB volume is detected in $MYSQL_DATA_DIR"
@@ -110,9 +115,7 @@ if [ -z "$(ls -A $MYSQL_DATA_DIR)" ]; then
     NOTICE 'Initializing database ...'
     NOTICE ''
     NOTICE 'mysql_install_db'
-    for i in "${!installArgs[@]}"; do
-        NOTICE "    ${installArgs[$i]}"
-    done
+    for i in "${!installArgs[@]}"; do NOTICE "    ${installArgs[$i]}"; done
     NOTICE ''
 
     mysql_install_db "${installArgs[@]}"
@@ -120,10 +123,8 @@ if [ -z "$(ls -A $MYSQL_DATA_DIR)" ]; then
     NOTICE ''
     NOTICE 'Database initialized'
 
-
     # Init file used at startup
-    INIT_FILE="/mariadb/tmp/mariadb-boot.sql"
-
+    INIT_FILE="${TMPDIR}/mariadb-boot.sql"
 
     # Create root user
     echo "
@@ -171,6 +172,19 @@ else
     NOTICE ''
     NOTICE "Found existing MariaDB volume in $MYSQL_DATA_DIR"
     NOTICE ''
+
+    # Give full access to mariadb user.
+    chown -R $MARIADB_USER:$MARIADB_GROUP "$MYSQL_DATA_DIR"
+
+    # Get tmpdir from config
+    TMPDIR=$(_get_config "tmpdir")
+    if [ -z "$TMPDIR" ]; then TMPDIR="/tmp"; fi
+
+    # Make sure tmpdir folder exist
+    if [ ! "$TMPDIR" = "/tmp" ]; then
+        mkdir -p $TMPDIR
+        chown -R $MARIADB_USER:$MARIADB_GROUP $TMPDIR
+    fi
 fi
 
 # Make sure the backup file can be excuted
@@ -188,7 +202,7 @@ startArgs+=( ${userstartArgs[i]} )
 done
 startArgs+=( --plugin-dir=/usr/lib/mysql/ )
 startArgs+=( --pid-file=/var/run/mariadb/mariadb.pid )
-startArgs+=( --socket=/var/run/mariadb/mariadb. )
+startArgs+=( --socket=/var/run/mariadb/mariadb.sock )
 
 # Let's go and start MariaDB
 NOTICE ''
