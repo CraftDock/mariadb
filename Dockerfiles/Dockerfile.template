@@ -1,7 +1,7 @@
 FROM dsuite/alpine-runit:{{MARIADB_ALPINE}}
 
 LABEL maintainer="Hexosse <hexosse@gmail.com>" \
-    org.opencontainers.image.title="docker-suite dsuite/mariadb image" \
+    org.opencontainers.image.title="docker-suite dsuite/mariadb:{{MARIADB_MAJOR}} image" \
     org.opencontainers.image.description="Minimal Alpine image with MariaDb and runit process supervisor" \
     org.opencontainers.image.authors="Hexosse <hexosse@gmail.com>" \
     org.opencontainers.image.vendor="docker-suite" \
