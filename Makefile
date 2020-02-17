@@ -6,7 +6,7 @@ DOCKER_IMAGE_REVISION=$(shell git rev-parse --short HEAD)
 ## Current directory
 DIR:=$(strip $(shell dirname $(realpath $(lastword $(MAKEFILE_LIST)))))
 
-## Define the latest version of nextcloud
+## Define the latest version of mariadb
 latest = 10.4
 
 # env file
