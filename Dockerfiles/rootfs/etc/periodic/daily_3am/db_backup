@@ -32,5 +32,5 @@ if [ -f "/etc/service/mariadb/supervise/lock" ]; then
     done
 
     # Remove old files
-    find "${MYSQL_BACKUP_DIR}/*" -type f -mtime "+${RETENTION_DAYS}" -name '*.gz' -delete
+    find "${MYSQL_BACKUP_DIR}" -type f -mtime "+${RETENTION_DAYS}" -name '*.gz' -delete
 fi
