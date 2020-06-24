@@ -13,7 +13,7 @@
    # Need explicit pthread for gcc -fsanitize=address
    IF(CMAKE_USE_PTHREADS_INIT AND CMAKE_C_FLAGS MATCHES "-fsanitize=")
      SET(CMAKE_REQUIRED_LIBRARIES ${CMAKE_REQUIRED_LIBRARIES} pthread)
-@@ -893,14 +894,26 @@ int main()
+@@ -894,14 +895,26 @@ int main()
    return 0;
  }"
  HAVE_GCC_ATOMIC_BUILTINS)
@@ -43,7 +43,7 @@
  
  IF(WITH_VALGRIND)
    SET(HAVE_valgrind 1)
-@@ -963,9 +976,12 @@ SET(CMAKE_EXTRA_INCLUDE_FILES)
+@@ -964,9 +977,12 @@ SET(CMAKE_EXTRA_INCLUDE_FILES)
  CHECK_STRUCT_HAS_MEMBER("struct dirent" d_ino "dirent.h"  STRUCT_DIRENT_HAS_D_INO)
  CHECK_STRUCT_HAS_MEMBER("struct dirent" d_namlen "dirent.h"  STRUCT_DIRENT_HAS_D_NAMLEN)
  SET(SPRINTF_RETURNS_INT 1)
