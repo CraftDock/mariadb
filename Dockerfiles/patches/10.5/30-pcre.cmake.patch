@@ -1,0 +1,22 @@
+--- a/cmake/pcre.cmake
++++ b/cmake/pcre.cmake
+@@ -57,19 +57,5 @@ SET_TARGET_PROPERTIES(pcre2 PROPERTIES E
+ ENDMACRO()
+
+ MACRO (CHECK_PCRE)
+-  IF(WITH_PCRE STREQUAL "system" OR WITH_PCRE STREQUAL "auto")
+-    CHECK_LIBRARY_EXISTS(pcre2-8 pcre2_match_8 "" HAVE_PCRE2)
+-  ENDIF()
+-  IF(NOT HAVE_PCRE2 OR WITH_PCRE STREQUAL "bundled")
+-    IF (WITH_PCRE STREQUAL "system")
+-      MESSAGE(FATAL_ERROR "system pcre2-8 library is not found or unusable")
+-    ENDIF()
+-    BUNDLE_PCRE2()
+-  ELSE()
+-    CHECK_LIBRARY_EXISTS(pcre2-posix PCRE2regcomp "" NEEDS_PCRE2_DEBIAN_HACK)
+-    IF(NEEDS_PCRE2_DEBIAN_HACK)
+-      SET(PCRE2_DEBIAN_HACK "-Dregcomp=PCRE2regcomp -Dregexec=PCRE2regexec -Dregerror=PCRE2regerror -Dregfree=PCRE2regfree")
+-    ENDIF()
+-  ENDIF()
+ ENDMACRO()
+

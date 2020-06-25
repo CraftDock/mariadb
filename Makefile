@@ -21,6 +21,12 @@ help: ## Display this help
 	@printf "\n\033[33mUsage:\033[0m\n  make \033[32m<target>\033[0m \033[36m[\033[0marg=\"val\"...\033[36m]\033[0m\n\n\033[33mTargets:\033[0m\n"
 	@awk 'BEGIN {FS = ":.*##"} /^[a-zA-Z_-]+:.*?##/ { printf "  \033[32m%-15s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
 
+all: ## Build all supported versions
+	@$(MAKE) build v=10.5
+	@$(MAKE) build v=10.4
+	@$(MAKE) build v=10.3
+	@$(MAKE) build v=10.2
+	@$(MAKE) build v=10.1
 
 build: ## Build a specific version of mariadb ( make build v=10.4)
 	@$(eval version := $(or $(v),$(latest)))
@@ -35,7 +41,7 @@ build: ## Build a specific version of mariadb ( make build v=10.4)
 		-v $(DIR)/Dockerfiles:/data \
 		dsuite/alpine-data \
 		sh -c "templater Dockerfile.template > Dockerfile-$(MARIADB_$(version)_MAJOR)"
-	@docker build \
+	@docker build --force-rm \
 		--build-arg http_proxy=${http_proxy} \
 		--build-arg https_proxy=${https_proxy} \
 		--file $(DIR)/Dockerfiles/Dockerfile-$(MARIADB_$(version)_MAJOR) \

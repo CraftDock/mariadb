@@ -54,7 +54,8 @@ RUN \
         pwgen \
         ncurses-libs \
         readline \
-        pcre \
+        # MariaDB 10.5 require pcre2
+        $(printf '%s\n%s\n' "{{MARIADB_MAJOR}}" "10.4" | sort -VC && echo 'pcre' || echo 'pcre2') \
         xz \
         zlib \
     # Install build dependencies
@@ -74,7 +75,8 @@ RUN \
         ncurses-dev \
         patch \
         readline-dev \
-        pcre-dev \
+        # MariaDB 10.5 require pcre2
+        $(printf '%s\n%s\n' "{{MARIADB_MAJOR}}" "10.4" | sort -VC && echo 'pcre-dev' || echo 'pcre2-dev') \
         xz-dev \
         zlib-dev \
     # Download mariadb source files
@@ -84,7 +86,7 @@ RUN \
     && GPG_KEYS="199369E5404BD5FC7D2FE43BCBCB082A1BB943DB;430BDF5C56E7C94E848EE60C1C4CBDCDCD2EFD2A;4D1BB29D63D98E422B2113B19334A25F8507EFA5" gpg-verify /tmp/mariadb.tar.gz.asc /tmp/mariadb.tar.gz \
     && tar zxf /tmp/mariadb.tar.gz -C /tmp \
     # cd to source folder
-    && cd "/tmp/mariadb-${MARIADB_VERSION}" \
+    && cd "/tmp/mariadb-${MARIADB_VERSION}"\
     # Apply patches
     && for patch in /tmp/patches/*.patch; do patch -p1 -i "$patch"; done \
     # Build from source
