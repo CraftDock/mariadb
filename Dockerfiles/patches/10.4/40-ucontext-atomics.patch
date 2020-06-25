@@ -13,7 +13,7 @@
    # Need explicit pthread for gcc -fsanitize=address
    IF(CMAKE_USE_PTHREADS_INIT AND CMAKE_C_FLAGS MATCHES "-fsanitize=")
      SET(CMAKE_REQUIRED_LIBRARIES ${CMAKE_REQUIRED_LIBRARIES} pthread)
-@@ -859,14 +860,25 @@ SET(SIGNAL_WITH_VIO_CLOSE 1)
+@@ -860,14 +861,25 @@ SET(SIGNAL_WITH_VIO_CLOSE 1)
  MARK_AS_ADVANCED(NO_ALARM)
  
  
@@ -45,7 +45,7 @@
 
 --- a/mysys/CMakeLists.txt
 +++ b/mysys/CMakeLists.txt
-@@ -76,7 +76,7 @@ ENDIF()
+@@ -75,7 +75,7 @@ ENDIF()
  
  ADD_CONVENIENCE_LIBRARY(mysys ${MYSYS_SOURCES})
  TARGET_LINK_LIBRARIES(mysys dbug strings ${ZLIB_LIBRARY}
