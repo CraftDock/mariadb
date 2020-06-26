@@ -87,7 +87,7 @@ shell: ## Get command prompt inside container
 		-v $(DIR)/tmp/db_data:/mariadb/data \
 		-v $(DIR)/tmp/db_backup:/mariadb/backup \
 		-v $(DIR)/tmp/log:/var/log \
-		--name mariadb-10.1 \
+		--name mariadb-$(version) \
 		$(DOCKER_IMAGE):$(MARIADB_$(version)_MAJOR) \
 		bash
 
