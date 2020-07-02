@@ -33,6 +33,7 @@ build: ## Build a specific version of mariadb ( make build v=10.4)
 	@docker run --rm \
 		-e http_proxy=${http_proxy} \
 		-e https_proxy=${https_proxy} \
+		-e no_proxy=${no_proxy} \
 		-e MARIADB_MAJOR=$(MARIADB_$(version)_MAJOR) \
 		-e MARIADB_VERSION=$(MARIADB_$(version)_VERSION) \
 		-e MARIADB_ALPINE=$(MARIADB_$(version)_ALPINE) \
@@ -44,6 +45,7 @@ build: ## Build a specific version of mariadb ( make build v=10.4)
 	@docker build --force-rm \
 		--build-arg http_proxy=${http_proxy} \
 		--build-arg https_proxy=${https_proxy} \
+		--build-arg no_proxy=${no_proxy} \
 		--file $(DIR)/Dockerfiles/Dockerfile-$(MARIADB_$(version)_MAJOR) \
 		--tag $(DOCKER_IMAGE):$(MARIADB_$(version)_MAJOR) \
 		$(DIR)/Dockerfiles
@@ -56,6 +58,7 @@ test:  ## Test a specific version of mariadb ( make build v=10.4)
 	@docker run --rm -t \
 		-e http_proxy=${http_proxy} \
 		-e https_proxy=${https_proxy} \
+		-e no_proxy=${no_proxy} \
 		-v $(DIR)/tests:/goss \
 		-v /tmp:/tmp \
 		-v /var/run/docker.sock:/var/run/docker.sock \
@@ -75,6 +78,7 @@ shell: ## Get command prompt inside container
 	@docker run -it --rm \
 		-e http_proxy=${http_proxy} \
 		-e https_proxy=${https_proxy} \
+		-e no_proxy=${no_proxy} \
 		-e DEBUG_LEVEL=DEBUG \
 		-e MYSQL_ROOT_PASSWORD=rootpassword \
 		-e MYSQL_DATABASE=TestBase \
@@ -101,6 +105,7 @@ readme: ## Generate docker hub full description
 	@docker run -t --rm \
 		-e http_proxy=${http_proxy} \
 		-e https_proxy=${https_proxy} \
+		-e no_proxy=${no_proxy} \
 		-e DEBUG_LEVEL=DEBUG \
 		-e DOCKER_USERNAME=${DOCKER_USERNAME} \
 		-e DOCKER_PASSWORD=${DOCKER_PASSWORD} \
