@@ -130,7 +130,7 @@ if [ -z "$(ls -A $MYSQL_DATA_DIR)" ]; then
     echo "
     USE mysql;
     SET @@SESSION.SQL_LOG_BIN=0;
-    DELETE FROM mysql.user WHERE user NOT IN ('mysql.sys', 'mysqlxsys', 'root') OR host NOT IN ('localhost') ;
+    DELETE FROM mysql.user WHERE user NOT IN ('mysql.sys', 'mariadb.sys', 'mysqlxsys', 'root') OR host NOT IN ('localhost') ;
     GRANT ALL ON *.* TO 'root'@'%' identified by '$MYSQL_ROOT_PASSWORD' WITH GRANT OPTION;
     GRANT ALL ON *.* TO 'root'@'localhost' identified by '$MYSQL_ROOT_PASSWORD' WITH GRANT OPTION;
     FLUSH PRIVILEGES;" >| ${INIT_FILE}
