@@ -6,14 +6,10 @@ volumes:
 services:
 
   mariadb:
-    image: dsuite/mariadb:10.5
-
+    image: dsuite/mariadb:10.4
     restart: always
     environment:
       - DEBUG_LEVEL=DEBUG
-      - http_proxy=${http_proxy}
-      - https_proxy=${https_proxy}
-      - no_proxy=${no_proxy}
       - MYSQL_ROOT_PASSWORD=MyRootPassword
       - MYSQL_DATABASE=my_database
       - MYSQL_USER=MyUser

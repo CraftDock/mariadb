@@ -1,4 +1,4 @@
-FROM dsuite/alpine-runit:{{MARIADB_ALPINE}}
+FROM dsuite/alpine-base:{{MARIADB_ALPINE}}
 
 LABEL maintainer="Hexosse <hexosse@gmail.com>" \
     org.opencontainers.image.title="docker-suite dsuite/mariadb:{{MARIADB_MAJOR}} image" \
@@ -12,10 +12,17 @@ LABEL maintainer="Hexosse <hexosse@gmail.com>" \
     org.opencontainers.image.created="{{DOCKER_IMAGE_CREATED}}" \
     org.opencontainers.image.revision="{{DOCKER_IMAGE_REVISION}}"
 
+## Config
 ARG MYSQL_DATA_DIR
 ARG MYSQL_CONFIG_DIR
 ARG MYSQL_BACKUP_DIR
 ARG MYSQL_LOG_DIR
+
+## Default user
+ARG MYSQL_USER="mariadb"
+ARG MYSQL_UID=1000
+ARG MYSQL_GROUP="mariadb"
+ARG MYSQL_GID=1000
 
 ENV MARIADB_MAJOR="{{MARIADB_MAJOR}}" \
     MARIADB_VERSION="{{MARIADB_VERSION}}" \
@@ -23,20 +30,23 @@ ENV MARIADB_MAJOR="{{MARIADB_MAJOR}}" \
     MARIADB_CONFIG_DIR=${MYSQL_CONFIG_DIR:-/mariadb/config} \
     MARIADB_BACKUP_DIR=${MYSQL_BACKUP_DIR:-/mariadb/backup} \
     MARIADB_LOG_DIR=${MYSQL_LOG_DIR:-/var/log/mariadb} \
-    MARIADB_USER="mariadb" \
-    MARIADB_GROUP="mariadb"
+    MARIADB_USER=${MYSQL_USER} \
+    MARIADB_GROUP=${MYSQL_GROUP}
 
-ENV NEW_USER=$MARIADB_USER \
-    NEW_GROUP=$MARIADB_GROUP \
-    NEW_UID=101 \
-    NEW_GID=100
+## Create mariadb user
+RUN \
+	# Print executed commands
+	set -x \
+    # Ensure maven user exists
+    && addgroup -g $MYSQL_GID -S $MYSQL_GROUP 2>/dev/null \
+    && adduser -u $MYSQL_UID -S -D -s /sbin/nologin -G $MYSQL_GROUP -g $MYSQL_USER $MYSQL_GROUP 2>/dev/null 
 
 
-# Copy patch files
+## Copy patch files
 COPY patches/{{MARIADB_MAJOR}} /tmp/patches
 
 
-# Install
+## Install
 RUN \
 	# Print executed commands
 	set -x \
@@ -215,14 +225,15 @@ RUN \
 	&& apk-remove --purge .mariadb-build-deps \
 	&& apk-cleanup
 
-# Copy templates files
-COPY templates /etc/entrypoint.d/templates
-
-# Copy scripts
+## Copy scripts
 COPY rootfs /
 
-# Add volume to allow persistence
+## Make entrypoint script accessible and executable
+RUN chmod 0755 /entrypoint.sh \
+    && chmod 0755 /mariadb-entrypoint.sh
+
+## Add volume to allow persistence
 VOLUME ["/mariadb"]
 
-# Expose MariaDB port
+## Expose MariaDB port
 EXPOSE 3306

@@ -7,7 +7,7 @@ DOCKER_IMAGE_REVISION=$(shell git rev-parse --short HEAD)
 DIR:=$(strip $(shell dirname $(realpath $(lastword $(MAKEFILE_LIST)))))
 
 ## Define the latest version of mariadb
-latest = 10.4
+latest = 10.5
 
 # env file
 include $(DIR)/make.env
@@ -21,19 +21,16 @@ help: ## Display this help
 	@printf "\n\033[33mUsage:\033[0m\n  make \033[32m<target>\033[0m \033[36m[\033[0marg=\"val\"...\033[36m]\033[0m\n\n\033[33mTargets:\033[0m\n"
 	@awk 'BEGIN {FS = ":.*##"} /^[a-zA-Z_-]+:.*?##/ { printf "  \033[32m%-15s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
 
-all: ## Build all supported versions
+build-all: ## Build all supported versions
 	@$(MAKE) build v=10.5
 	@$(MAKE) build v=10.4
 	@$(MAKE) build v=10.3
 	@$(MAKE) build v=10.2
 	@$(MAKE) build v=10.1
 
-build: ## Build a specific version of mariadb ( make build v=10.4)
+build: ## Build a specific version of mariadb ( make build v=10.5)
 	@$(eval version := $(or $(v),$(latest)))
 	@docker run --rm \
-		-e http_proxy=${http_proxy} \
-		-e https_proxy=${https_proxy} \
-		-e no_proxy=${no_proxy} \
 		-e MARIADB_MAJOR=$(MARIADB_$(version)_MAJOR) \
 		-e MARIADB_VERSION=$(MARIADB_$(version)_VERSION) \
 		-e MARIADB_ALPINE=$(MARIADB_$(version)_ALPINE) \
@@ -43,42 +40,34 @@ build: ## Build a specific version of mariadb ( make build v=10.4)
 		dsuite/alpine-data \
 		sh -c "templater Dockerfile.template > Dockerfile-$(MARIADB_$(version)_MAJOR)"
 	@docker build --force-rm \
-		--build-arg http_proxy=${http_proxy} \
-		--build-arg https_proxy=${https_proxy} \
-		--build-arg no_proxy=${no_proxy} \
 		--file $(DIR)/Dockerfiles/Dockerfile-$(MARIADB_$(version)_MAJOR) \
 		--tag $(DOCKER_IMAGE):$(MARIADB_$(version)_MAJOR) \
 		$(DIR)/Dockerfiles
 	@[ "$(version)" = "$(latest)" ] && docker tag $(DOCKER_IMAGE):$(MARIADB_$(version)_MAJOR) $(DOCKER_IMAGE):latest || true
 
 
-test:  ## Test a specific version of mariadb ( make build v=10.4)
+test:  ## Test a specific version of mariadb ( make build v=10.5)
 	@$(eval version := $(or $(v),$(latest)))
-	@$(MAKE) build v=$(version)
-	@docker run --rm -t \
-		-e http_proxy=${http_proxy} \
-		-e https_proxy=${https_proxy} \
-		-e no_proxy=${no_proxy} \
-		-v $(DIR)/tests:/goss \
-		-v /tmp:/tmp \
-		-v /var/run/docker.sock:/var/run/docker.sock \
-		dsuite/goss:latest \
-		dgoss run -e MYSQL_BACKUP_DIR=/mysql/backup -e MYSQL_LOG_DIR=/mysql/logs --entrypoint=/goss/entrypoint.sh $(DOCKER_IMAGE):$(MARIADB_$(version)_MAJOR)
+	@GOSS_FILES_PATH=$(DIR)/tests \
+	GOSS_SLEEP=0.5 \
+	 	dgoss run $(DOCKER_IMAGE):$(MARIADB_$(version)_MAJOR)
 
+push-all: ## Push all supported versions
+	@$(MAKE) push v=10.5
+	@$(MAKE) push v=10.4
+	@$(MAKE) push v=10.3
+	@$(MAKE) push v=10.2
+	@$(MAKE) push v=10.1
 
-push: ## Push a specific version of mariadb ( make build v=10.4)
+push: ## Push a specific version of mariadb ( make build v=10.5)
 	@$(eval version := $(or $(v),$(latest)))
 	@docker push $(DOCKER_IMAGE):$(MARIADB_$(version)_MAJOR)
 
 
 shell: ## Get command prompt inside container
 	@$(eval version := $(or $(v),$(latest)))
-	@$(MAKE) build v=$(version)
 	@mkdir -p $(DIR)/tmp/db_config $(DIR)/tmp/db_data $(DIR)/tmp/db_backup $(DIR)/tmp/log
 	@docker run -it --rm \
-		-e http_proxy=${http_proxy} \
-		-e https_proxy=${https_proxy} \
-		-e no_proxy=${no_proxy} \
 		-e DEBUG_LEVEL=DEBUG \
 		-e MYSQL_ROOT_PASSWORD=rootpassword \
 		-e MYSQL_DATABASE=TestBase \
@@ -92,8 +81,8 @@ shell: ## Get command prompt inside container
 		-v $(DIR)/tmp/db_backup:/mariadb/backup \
 		-v $(DIR)/tmp/log:/var/log \
 		--name mariadb-$(version) \
-		$(DOCKER_IMAGE):$(MARIADB_$(version)_MAJOR) \
-		bash
+		--entrypoint /bin/bash \
+		$(DOCKER_IMAGE):$(MARIADB_$(version)_MAJOR)
 
 
 remove: ## Remove all generated images
@@ -103,9 +92,6 @@ remove: ## Remove all generated images
 
 readme: ## Generate docker hub full description
 	@docker run -t --rm \
-		-e http_proxy=${http_proxy} \
-		-e https_proxy=${https_proxy} \
-		-e no_proxy=${no_proxy} \
 		-e DEBUG_LEVEL=DEBUG \
 		-e DOCKER_USERNAME=${DOCKER_USERNAME} \
 		-e DOCKER_PASSWORD=${DOCKER_PASSWORD} \
