@@ -6,7 +6,7 @@ volumes:
 services:
 
   mariadb:
-    image: dsuite/mariadb:10.4
+    image: dsuite/mariadb:10.5
     restart: always
     environment:
       - DEBUG_LEVEL=DEBUG
