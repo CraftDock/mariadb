@@ -1,6 +1,6 @@
 --- a/scripts/CMakeLists.txt
 +++ b/scripts/CMakeLists.txt
-@@ -170,25 +170,14 @@ ENDIF(UNIX)
+@@ -169,25 +169,14 @@ ENDIF(UNIX)
  # i.e. makes access relative the current directory. This matches
  # the documentation, so better not change this.
  
