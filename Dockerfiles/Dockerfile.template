@@ -1,8 +1,8 @@
-FROM dsuite/alpine-base:{{MARIADB_ALPINE}}
+FROM mariadb:{{MARIADB_VERSION}}
 
 LABEL maintainer="Hexosse <hexosse@gmail.com>" \
-    org.opencontainers.image.title="docker-suite dsuite/mariadb:{{MARIADB_MAJOR}} image" \
-    org.opencontainers.image.description="Minimal Alpine image with MariaDb and runit process supervisor" \
+    org.opencontainers.image.title="docker-suite dsuite/mariadb:{{MARIADB_VERSION}} image" \
+    org.opencontainers.image.description="Based on official mariadb image" \
     org.opencontainers.image.authors="Hexosse <hexosse@gmail.com>" \
     org.opencontainers.image.vendor="docker-suite" \
     org.opencontainers.image.licenses="MIT" \
@@ -12,228 +12,43 @@ LABEL maintainer="Hexosse <hexosse@gmail.com>" \
     org.opencontainers.image.created="{{DOCKER_IMAGE_CREATED}}" \
     org.opencontainers.image.revision="{{DOCKER_IMAGE_REVISION}}"
 
-## Config
-ARG MYSQL_DATA_DIR
-ARG MYSQL_CONFIG_DIR
-ARG MYSQL_BACKUP_DIR
-ARG MYSQL_LOG_DIR
-
-## Default user
-ARG MYSQL_USER="mariadb"
-ARG MYSQL_UID=1000
-ARG MYSQL_GROUP="mariadb"
-ARG MYSQL_GID=1000
-
-ENV MARIADB_MAJOR="{{MARIADB_MAJOR}}" \
-    MARIADB_VERSION="{{MARIADB_VERSION}}" \
-    MARIADB_DATA_DIR=${MYSQL_DATA_DIR:-/mariadb/data} \
-    MARIADB_CONFIG_DIR=${MYSQL_CONFIG_DIR:-/mariadb/config} \
-    MARIADB_BACKUP_DIR=${MYSQL_BACKUP_DIR:-/mariadb/backup} \
-    MARIADB_LOG_DIR=${MYSQL_LOG_DIR:-/var/log/mariadb} \
-    MARIADB_USER=${MYSQL_USER} \
-    MARIADB_GROUP=${MYSQL_GROUP}
-
-## Create mariadb user
+## Install tools
 RUN \
-	# Print executed commands
-	set -x \
-    # Ensure maven user exists
-    && addgroup -g $MYSQL_GID -S $MYSQL_GROUP 2>/dev/null \
-    && adduser -u $MYSQL_UID -S -D -s /sbin/nologin -G $MYSQL_GROUP -g $MYSQL_USER $MYSQL_GROUP 2>/dev/null 
+    apt-get update \
+    && apt-get install -y --no-install-recommends \
+        wget \
+        busybox-static
 
+## dockerize: Utility to simplify running applications in docker containers
+## https://github.com/jwilder/dockerize
+ENV DOCKERIZE_VERSION v0.6.1
+RUN wget https://github.com/jwilder/dockerize/releases/download/$DOCKERIZE_VERSION/dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz \
+    && tar -C /usr/local/bin -xzvf dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz \
+    && rm dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz
 
-## Copy patch files
-COPY patches/{{MARIADB_MAJOR}} /tmp/patches
-
-
-## Install
+## Validate image
 RUN \
-	# Print executed commands
-	set -x \
-    # Update repository indexes
-    && apk update \
-    # Install run dependencies
-    && apk-install -t .mariadb-run-deps \
-        libaio \
-        libstdc++ \
-        libxml2 \
-        # MariaDB 10.1 does not support OpenSSL 1.1.
-        $(test "{{MARIADB_MAJOR}}" = "10.1" && echo 'libressl' || echo 'openssl') \
-        linux-pam \
-        make \
-        pwgen \
-        ncurses-libs \
-        readline \
-        # MariaDB 10.5 require pcre2
-        $(printf '%s\n%s\n' "{{MARIADB_MAJOR}}" "10.4" | sort -VC && echo 'pcre' || echo 'pcre2') \
-        xz \
-        zlib \
-    # Install build dependencies
-    && apk-install -t .mariadb-build-deps \
-        attr \
-        autoconf \
-        bison \
-        build-base \
-        cmake \
-        coreutils \
-        libaio-dev \
-        libxml2-dev \
-        # MariaDB 10.1 does not support OpenSSL 1.1.
-        $(test "{{MARIADB_MAJOR}}" = "10.1" && echo 'libressl-dev' || echo 'openssl-dev') \
-        linux-headers \
-        linux-pam-dev \
-        ncurses-dev \
-        patch \
-        readline-dev \
-        # MariaDB 10.5 require pcre2
-        $(printf '%s\n%s\n' "{{MARIADB_MAJOR}}" "10.4" | sort -VC && echo 'pcre-dev' || echo 'pcre2-dev') \
-        xz-dev \
-        zlib-dev \
-    # Download mariadb source files
-    && mariadb_url="https://downloads.mariadb.com/MariaDB/mariadb-${MARIADB_VERSION}/source/mariadb-${MARIADB_VERSION}.tar.gz" \
-    && curl -fSL "${mariadb_url}" -o /tmp/mariadb.tar.gz \
-    && curl -fSL "${mariadb_url}.asc" -o /tmp/mariadb.tar.gz.asc \
-    && GPG_KEYS="199369E5404BD5FC7D2FE43BCBCB082A1BB943DB;430BDF5C56E7C94E848EE60C1C4CBDCDCD2EFD2A;4D1BB29D63D98E422B2113B19334A25F8507EFA5" gpg-verify /tmp/mariadb.tar.gz.asc /tmp/mariadb.tar.gz \
-    && tar zxf /tmp/mariadb.tar.gz -C /tmp \
-    # cd to source folder
-    && cd "/tmp/mariadb-${MARIADB_VERSION}"\
-    # Apply patches
-    && for patch in /tmp/patches/*.patch; do patch -p1 -i "$patch"; done \
-    # Build from source
-    # https://mariadb.com/kb/en/library/specifying-which-plugins-to-build/
-    # https://mariadb.com/kb/en/library/list-of-plugins/
-    && cmake . \
-        -DBUILD_CONFIG=mysql_release \
-   		-DCMAKE_INSTALL_PREFIX=/usr \
-   		-DSYSCONFDIR=$MARIADB_CONFIG_DIR \
-   		-DMYSQL_DATADIR=$MARIADB_DATA_DIR \
-   		-DMYSQL_UNIX_ADDR=/run/mariadb/mariadb.sock \
-   		-DDEFAULT_CHARSET=utf8mb4 \
-   		-DDEFAULT_COLLATION=utf8mb4_general_ci  \
-   		-DENABLED_LOCAL_INFILE=ON \
-   		-DINSTALL_INFODIR=share/mariadb/docs \
-   		-DINSTALL_MANDIR=share/man \
-   		-DINSTALL_PLUGINDIR=lib/mysql/plugin \
-   		-DINSTALL_SCRIPTDIR=bin \
-   		-DINSTALL_INCLUDEDIR=include/mysql \
-   		-DINSTALL_DOCREADMEDIR=share/mysql \
-   		-DINSTALL_SUPPORTFILESDIR=share/mysql \
-   		-DINSTALL_MYSQLSHAREDIR=share/mysql \
-   		-DINSTALL_DOCDIR=share/mysql/docs \
-   		-DINSTALL_SHAREDIR=share/mysql \
-	    -DTMPDIR=/mariadb/tmp \
-		-DCONNECT_WITH_MYSQL=ON \
-		-DCONNECT_WITH_LIBXML2=system \
-		-DCONNECT_WITH_ODBC=NO \
-		-DCONNECT_WITH_JDBC=NO \
-		-DPLUGIN_ARCHIVE=YES \
-		-DPLUGIN_ARIA=YES \
-		-DPLUGIN_BLACKHOLE=YES \
-		-DPLUGIN_CASSANDRA=NO \
-		-DPLUGIN_CONNECT=YES \
-		-DPLUGIN_CRACKLIB_PASSWORD_CHECK=NO \
-		-DPLUGIN_CSV=YES \
-		-DPLUGIN_FEEDBACK=NO \
-		-DPLUGIN_LOCALES=YES \
-		-DPLUGIN_MROONGA=NO \
-		-DPLUGIN_MYISAM=NO \
-		-DPLUGIN_OQGRAPH=NO \
-		-DPLUGIN_PARTITION=YES \
-		-DPLUGIN_SIMPLE_PASSWORD_CHECK=YES \
-		-DPLUGIN_SPHINX=NO \
-		-DPLUGIN_TOKUDB=NO \
-		# -DPLUGIN_AUTH_PAM=NO \
-		-DPLUGIN_AUTH_GSSAPI=NO \
-		-DPLUGIN_AUTH_GSSAPI_CLIENT=OFF \
-   		-DWITH_ARCHIVE_STORAGE_ENGINE=1 \
-   		-DWITH_BLACKHOLE_STORAGE_ENGINE=1 \
-   		-DWITH_INNOBASE_STORAGE_ENGINE=1 \
-   		-DWITH_PARTITION_STORAGE_ENGINE=1 \
-		-DWITH_ASAN=OFF \
-   		-DWITH_EMBEDDED_SERVER=ON \
-   		-DWITH_EXTRA_CHARSETS=complex \
-		-DWITH_INNODB_BZIP2=OFF \
-		-DWITH_INNODB_LZ4=OFF \
-		-DWITH_INNODB_LZMA=ON \
-		-DWITH_INNODB_LZO=OFF \
-		-DWITH_INNODB_SNAPPY=OFF \
-		-DWITH_ROCKSDB_BZIP2=OFF \
-		-DWITH_ROCKSDB_JEMALLOC=OFF \
-		-DWITH_ROCKSDB_LZ4=OFF \
-		-DWITH_ROCKSDB_ZSTD=OFF \
-		-DWITH_ROCKSDB_SNAPPY=OFF \
-   		-DWITH_JEMALLOC=NO \
-		-DWITH_LIBARCHIVE=system \
-		-DWITH_LIBNUMA=NO \
-		-DWITH_LIBWRAP=OFF \
-		-DWITH_LIBWSEP=OFF \
-		-DWITH_MARIABACKUP=ON \
-		-DWITH_PCRE=system \
-   		-DWITH_READLINE=ON \
-		-DWITH_SYSTEMD=no \
-   		-DWITH_SSL=system \
-		-DWITH_VALGRIND=OFF \
-		-DWITH_WSREP=ON \
-   		-DWITH_ZLIB=system \
-   		-DWITHOUT_EXAMPLE_STORAGE_ENGINE=1 \
-   		-DWITHOUT_FEDERATED_STORAGE_ENGINE=1 \
-   		-DWITHOUT_PBXT_STORAGE_ENGINE=1 \
-		-DSKIP_TESTS=ON \
-    && cmake -L \
-    && make -j "$(nproc)" \
-    && make install \
-    # Validate install
-    && mysql -V \
+    mysql -V \
     && mysqladmin -V \
     && mysqld -V \
     && mysqlcheck -V \
     && mysqldump -V \
     && mysqlimport -V \
-    # Remove test, lib, doc, ... files
-    && rm -rf \
-        /usr/bin/mysql_client_test* \
-        /usr/bin/mysql_config \
-        /usr/bin/mysqltest* \
-        /usr/data/test \
-        /usr/include/mysql \
-        /usr/mysql-test \
-        /usr/share/man \
-        /usr/share/mysql/pkgconfig \
-        /usr/sql-bench \
-    && \
-        find /usr/lib -name '*.a' -maxdepth 1 -print0 | xargs -0 rm; \
-        find /usr/lib -name '*.so' -type l -maxdepth 1 -print0 | xargs -0 rm; \
-        find /usr/share/terminfo/ -mindepth 1 -type d  ! -name x -print0 | xargs -0 rm -rf \
-    # Strip binaries and .so files.
-    && scanelf --symlink --recursive --nobanner --osabi --etype "ET_DYN,ET_EXEC" \
-            /usr/bin/* /usr/lib/mysql/plugin/* | while read type osabi filename; do \
-            ([ "$osabi" != "STANDALONE" ] && [ "${filename}" != "/usr/bin/strip" ]) || continue; \
-            XATTR=$(getfattr --match="" --dump "${filename}"); \
-            strip "${filename}"; \
-            if [ -n "$XATTR" ]; then \
-                echo "$XATTR" | setfattr --restore=-; \
-            fi; \
-        done \
-    # Validate install
-    && mysql -V \
-    && mysqladmin -V \
-    && mysqld -V \
-    && mysqlcheck -V \
-    && mysqldump -V \
-    && mysqlimport -V \
-	# Clear apk's cache
-	&& apk-remove --purge .mariadb-build-deps \
-	&& apk-cleanup
+    && dockerize --version
 
 ## Copy scripts
 COPY rootfs /
 
-## Make entrypoint script accessible and executable
-RUN chmod 0755 /entrypoint.sh \
-    && chmod 0755 /mariadb-entrypoint.sh
+## Create log folder
+RUN mkdir -p /var/log/mysql/ \
+    && chown -R mysql:mysql /var/log/mysql/
 
-## Add volume to allow persistence
-VOLUME ["/mariadb"]
+## Environment variables used for backup
+ENV BACKUP_CRON_TIME="0 3 * * *" \
+    BACKUP_TIMEOUT="10s" \
+    BACKUP_DUMP_OPTS="--quick"
 
-## Expose MariaDB port
-EXPOSE 3306
+## backup tools
+RUN mkdir /backup \
+    && chmod 777 /backup \
+    && chmod 755 /backup_cron.sh /backup.sh

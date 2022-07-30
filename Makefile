@@ -7,10 +7,7 @@ DOCKER_IMAGE_REVISION=$(shell git rev-parse --short HEAD)
 DIR:=$(strip $(shell dirname $(realpath $(lastword $(MAKEFILE_LIST)))))
 
 ## Define the latest version of mariadb
-latest = 10.5
-
-# env file
-include $(DIR)/make.env
+latest = 10.8
 
 ##
 .DEFAULT_GOAL := help
@@ -22,67 +19,60 @@ help: ## Display this help
 	@awk 'BEGIN {FS = ":.*##"} /^[a-zA-Z_-]+:.*?##/ { printf "  \033[32m%-15s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
 
 build-all: ## Build all supported versions
+	@$(MAKE) build v=10.9-rc
+	@$(MAKE) build v=10.8
+	@$(MAKE) build v=10.7
+	@$(MAKE) build v=10.6
 	@$(MAKE) build v=10.5
 	@$(MAKE) build v=10.4
 	@$(MAKE) build v=10.3
 	@$(MAKE) build v=10.2
-	@$(MAKE) build v=10.1
 
-build: ## Build a specific version of mariadb ( make build v=10.5)
+build: ## Build a specific version of mariadb (make build v=10.5)
 	@$(eval version := $(or $(v),$(latest)))
 	@docker run --rm \
-		-e MARIADB_MAJOR=$(MARIADB_$(version)_MAJOR) \
-		-e MARIADB_VERSION=$(MARIADB_$(version)_VERSION) \
-		-e MARIADB_ALPINE=$(MARIADB_$(version)_ALPINE) \
+		-e MARIADB_VERSION=$(version) \
 		-e DOCKER_IMAGE_CREATED=$(DOCKER_IMAGE_CREATED) \
 		-e DOCKER_IMAGE_REVISION=$(DOCKER_IMAGE_REVISION) \
 		-v $(DIR)/Dockerfiles:/data \
 		dsuite/alpine-data \
-		sh -c "templater Dockerfile.template > Dockerfile-$(MARIADB_$(version)_MAJOR)"
+		sh -c "templater Dockerfile.template > Dockerfile-$(version)"
 	@docker build --force-rm \
-		--file $(DIR)/Dockerfiles/Dockerfile-$(MARIADB_$(version)_MAJOR) \
-		--tag $(DOCKER_IMAGE):$(MARIADB_$(version)_MAJOR) \
+		--file $(DIR)/Dockerfiles/Dockerfile-$(version) \
+		--tag $(DOCKER_IMAGE):$(version) \
 		$(DIR)/Dockerfiles
-	@[ "$(version)" = "$(latest)" ] && docker tag $(DOCKER_IMAGE):$(MARIADB_$(version)_MAJOR) $(DOCKER_IMAGE):latest || true
-
-
-test:  ## Test a specific version of mariadb ( make build v=10.5)
-	@$(eval version := $(or $(v),$(latest)))
-	@GOSS_FILES_PATH=$(DIR)/tests \
-	GOSS_SLEEP=0.5 \
-	 	dgoss run $(DOCKER_IMAGE):$(MARIADB_$(version)_MAJOR)
+	@[ "$(version)" = "$(latest)" ] && docker tag $(DOCKER_IMAGE):$(version) $(DOCKER_IMAGE):latest || true
 
 push-all: ## Push all supported versions
+	@$(MAKE) push v=10.8
+	@$(MAKE) push v=10.7
+	@$(MAKE) push v=10.6
 	@$(MAKE) push v=10.5
 	@$(MAKE) push v=10.4
 	@$(MAKE) push v=10.3
 	@$(MAKE) push v=10.2
-	@$(MAKE) push v=10.1
 
 push: ## Push a specific version of mariadb ( make build v=10.5)
 	@$(eval version := $(or $(v),$(latest)))
-	@docker push $(DOCKER_IMAGE):$(MARIADB_$(version)_MAJOR)
+	@docker push $(DOCKER_IMAGE):$(version)
+	@[ "$(version)" = "$(latest)" ] && docker push $(DOCKER_IMAGE):latest || true
 
 
-shell: ## Get command prompt inside container
+run: ## Get command prompt inside container
 	@$(eval version := $(or $(v),$(latest)))
-	@mkdir -p $(DIR)/tmp/db_config $(DIR)/tmp/db_data $(DIR)/tmp/db_backup $(DIR)/tmp/log
+	@mkdir -p $(DIR)/tmp/db_startup $(DIR)/tmp/db_config $(DIR)/tmp/db_data $(DIR)/tmp/db_backup $(DIR)/tmp/db_log
 	@docker run -it --rm \
-		-e DEBUG_LEVEL=DEBUG \
 		-e MYSQL_ROOT_PASSWORD=rootpassword \
 		-e MYSQL_DATABASE=TestBase \
 		-e MYSQL_USER=test \
 		-e MYSQL_PASSWORD=test \
-		-e INNODB_LARGE_PREFIX=on       \
-		-e INNODB_FILE_FORMAT=barracuda \
-		-e INNODB_FILE_PER_TABLE=on     \
-		-v $(DIR)/tmp/db_config:/mariadb/config \
-		-v $(DIR)/tmp/db_data:/mariadb/data \
-		-v $(DIR)/tmp/db_backup:/mariadb/backup \
-		-v $(DIR)/tmp/log:/var/log \
+		-v $(DIR)/tmp/db_startup:/docker-entrypoint-initdb.d \
+		-v $(DIR)/tmp/db_config:/etc/mysql/conf.d \
+		-v $(DIR)/tmp/db_data:/var/lib/mysql \
+		-v $(DIR)/tmp/db_log:/var/log/mysql \
+		-v $(DIR)/tmp/db_backup:/backup \
 		--name mariadb-$(version) \
-		--entrypoint /bin/bash \
-		$(DOCKER_IMAGE):$(MARIADB_$(version)_MAJOR)
+		$(DOCKER_IMAGE):$(version)
 
 
 remove: ## Remove all generated images
@@ -92,7 +82,6 @@ remove: ## Remove all generated images
 
 readme: ## Generate docker hub full description
 	@docker run -t --rm \
-		-e DEBUG_LEVEL=DEBUG \
 		-e DOCKER_USERNAME=${DOCKER_USERNAME} \
 		-e DOCKER_PASSWORD=${DOCKER_PASSWORD} \
 		-e DOCKER_IMAGE=${DOCKER_IMAGE} \

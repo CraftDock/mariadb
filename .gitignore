@@ -1,5 +1,5 @@
-**/tmp/*
-
 Dockerfile-*
-
-**/.tools
+tmp/*
+.example/backup
+.example/log
+*.log
