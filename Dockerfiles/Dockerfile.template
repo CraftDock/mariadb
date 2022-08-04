@@ -50,5 +50,4 @@ ENV BACKUP_CRON_TIME="0 3 * * *" \
 
 ## backup tools
 RUN mkdir /backup \
-    && chmod 777 /backup \
     && chmod 755 /backup_cron.sh /backup.sh
